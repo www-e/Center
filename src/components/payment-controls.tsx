@@ -6,6 +6,22 @@ import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { translations, scheduleData } from '@/lib/constants';
 import { Grade, GroupDay } from '@prisma/client';
 import { PaymentScannerModal } from './payment-scanner-modal';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Filter, 
+  Calendar, 
+  Clock, 
+  GraduationCap, 
+  CreditCard, 
+  ChevronLeft, 
+  ChevronRight,
+  X,
+  DollarSign,
+  Receipt
+} from 'lucide-react';
 
 export function PaymentControls() {
   const searchParams = useSearchParams();
@@ -14,10 +30,12 @@ export function PaymentControls() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Read filters from URL
   const currentGrade = searchParams.get('grade') as Grade | null;
   const currentGroupDay = searchParams.get('groupDay') as GroupDay | null;
   const currentGroupTime = searchParams.get('groupTime') as string | null;
+
+  // Get current year from URL or default to current
+  const currentYear = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
 
   function handleFilterChange(key: 'grade' | 'groupDay' | 'groupTime', value: string) {
     const params = new URLSearchParams(searchParams);
@@ -31,21 +49,27 @@ export function PaymentControls() {
       params.delete('groupTime');
     }
     if (key === 'groupDay') {
-        params.delete('groupTime');
+      params.delete('groupTime');
     }
     replace(`${pathname}?${params.toString()}`);
   }
 
+  function clearFilter(key: 'grade' | 'groupDay' | 'groupTime') {
+    handleFilterChange(key, '');
+  }
+
   function handleYearChange(direction: 'next' | 'prev') {
     const params = new URLSearchParams(searchParams);
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
-    const newYear = direction === 'next' ? year + 1 : year - 1;
+    const newYear = direction === 'next' ? currentYear + 1 : currentYear - 1;
     params.set('year', newYear.toString());
     replace(`${pathname}?${params.toString()}`);
   }
-  
+
   const groupDayOptions = currentGrade ? Object.keys(scheduleData[currentGrade].groupDays) : [];
   const groupTimeOptions = (currentGrade && currentGroupDay && scheduleData[currentGrade].groupDays[currentGroupDay as keyof typeof scheduleData[Grade]['groupDays']]) || [];
+
+  // Calculate active filters count
+  const activeFiltersCount = [currentGrade, currentGroupDay, currentGroupTime].filter(Boolean).length;
 
   return (
     <>
@@ -53,45 +77,192 @@ export function PaymentControls() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
-      <div className="bg-white p-4 rounded-lg shadow mb-8" dir="rtl">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-          {/* Filters */}
-          <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="grade-filter" className="block text-sm font-medium text-gray-700 mb-1">الصف</label>
-              <select id="grade-filter" value={currentGrade ?? ''} onChange={(e) => handleFilterChange('grade', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                <option value="">الكل</option>
-                {Object.values(Grade).map(g => <option key={g} value={g}>{translations[g]}</option>)}
-              </select>
+      
+      <div className="space-y-6">
+        {/* Filter Header */}
+        <Card className="shadow-card glass-effect">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-success/10 rounded-xl flex items-center justify-center">
+                  <Filter className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold text-foreground">فلاتر المدفوعات</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {activeFiltersCount > 0 ? `${activeFiltersCount} فلتر نشط` : 'عرض جميع الطلاب'}
+                  </p>
+                </div>
+              </div>
+              
+              {activeFiltersCount > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => replace(pathname + `?year=${currentYear}`)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  مسح الفلاتر
+                </Button>
+              )}
             </div>
-            <div>
-              <label htmlFor="groupday-filter" className="block text-sm font-medium text-gray-700 mb-1">الأيام</label>
-              <select id="groupday-filter" disabled={!currentGrade} value={currentGroupDay ?? ''} onChange={(e) => handleFilterChange('groupDay', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md shadow-sm disabled:bg-gray-100">
-                <option value="">الكل</option>
-                {groupDayOptions.map(gd => <option key={gd} value={gd}>{translations[gd as GroupDay]}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="grouptime-filter" className="block text-sm font-medium text-gray-700 mb-1">الميعاد</label>
-              <select id="grouptime-filter" disabled={!currentGroupDay} value={currentGroupTime ?? ''} onChange={(e) => handleFilterChange('groupTime', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md shadow-sm disabled:bg-gray-100">
-                <option value="">الكل</option>
-                {(groupTimeOptions as string[]).map(gt => <option key={gt} value={gt}>{gt}</option>)}
-              </select>
-            </div>
-          </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Active Filters Display */}
+            {activeFiltersCount > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-foreground">الفلاتر المطبقة:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {currentGrade && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-2">
+                      <GraduationCap className="h-3 w-3" />
+                      {translations[currentGrade]}
+                      <button onClick={() => clearFilter('grade')} className="hover:bg-primary/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {currentGroupDay && (
+                    <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/20 gap-2">
+                      <Calendar className="h-3 w-3" />
+                      {translations[currentGroupDay]}
+                      <button onClick={() => clearFilter('groupDay')} className="hover:bg-secondary/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {currentGroupTime && (
+                    <Badge variant="outline" className="bg-success/10 text-success border-success/20 gap-2">
+                      <Clock className="h-3 w-3" />
+                      {currentGroupTime}
+                      <button onClick={() => clearFilter('groupTime')} className="hover:bg-success/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
 
+            {/* Filter Controls */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-primary" />
+                  الصف الدراسي
+                </label>
+                <Select value={currentGrade ?? ''} onValueChange={(value) => handleFilterChange('grade', value)}>
+                  <SelectTrigger className="focus-ring">
+                    <SelectValue placeholder="اختر الصف الدراسي" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">جميع الصفوف</SelectItem>
+                    {Object.values(Grade).map(g => (
+                      <SelectItem key={g} value={g}>{translations[g]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-secondary" />
+                  مجموعة الأيام
+                </label>
+                <Select 
+                  value={currentGroupDay ?? ''} 
+                  onValueChange={(value) => handleFilterChange('groupDay', value)}
+                  disabled={!currentGrade}
+                >
+                  <SelectTrigger className="focus-ring disabled:opacity-50">
+                    <SelectValue placeholder="اختر أيام المجموعة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">جميع الأيام</SelectItem>
+                    {groupDayOptions.map(gd => (
+                      <SelectItem key={gd} value={gd}>{translations[gd as GroupDay]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-success" />
+                  ميعاد المجموعة
+                </label>
+                <Select 
+                  value={currentGroupTime ?? ''} 
+                  onValueChange={(value) => handleFilterChange('groupTime', value)}
+                  disabled={!currentGroupDay}
+                >
+                  <SelectTrigger className="focus-ring disabled:opacity-50">
+                    <SelectValue placeholder="اختر ميعاد المجموعة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">جميع المواعيد</SelectItem>
+                    {(groupTimeOptions as string[]).map(gt => (
+                      <SelectItem key={gt} value={gt}>{gt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Year Navigation & Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Year Navigation */}
-          <div className="md:col-span-1 flex justify-center items-center space-x-2 space-x-reverse">
-              <button onClick={() => handleYearChange('prev')} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">السنة السابقة</button>
-              <button onClick={() => handleYearChange('next')} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">السنة التالية</button>
-          </div>
+          <Card className="shadow-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => handleYearChange('prev')}
+                  className="flex items-center gap-2 hover-lift"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  السنة السابقة
+                </Button>
+                
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-foreground">{currentYear}</div>
+                  <div className="text-sm text-muted-foreground">السنة الحالية</div>
+                </div>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => handleYearChange('next')}
+                  className="flex items-center gap-2 hover-lift"
+                >
+                  السنة التالية
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Action Button */}
-          <div className="md:col-span-2 flex justify-end items-center">
-              <button onClick={() => setIsModalOpen(true)} className="w-full md:w-auto px-5 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-sm hover:bg-green-700 transition-all">
-                تسجيل دفعة جديدة
-              </button>
-          </div>
+          {/* Payment Action */}
+          <Card className="shadow-card">
+            <CardContent className="p-6">
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="w-full bg-gradient-success text-white h-16 text-lg font-semibold rounded-xl hover-lift group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Receipt className="h-6 w-6" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg">تسجيل دفعة جديدة</div>
+                    <div className="text-sm opacity-90">مسح كود الطالب وتحديد المبلغ</div>
+                  </div>
+                </div>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </>

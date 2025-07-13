@@ -1,37 +1,323 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #0070f3; /* Actions, buttons */
-  --color-success: #22c55e; /* Attendance checks, positives */
-  --color-error: #ef4444; /* Warnings, unpaid */
-  --color-background: #ffffff; /* Light mode bg */
-  --color-foreground: #171717; /* Text */
-  --color-neutral: #f3f4f6; /* Light grays for cards/tables */
-  --font-sans: 'Inter', sans-serif; /* Modern typography */
+  /* === 2025 Modern Color Palette === */
+  
+  /* Primary Colors - Nature-inspired Sage Green */
+  --color-primary: #22c55e;
+  --color-primary-foreground: #ffffff;
+  --color-primary-hover: #16a34a;
+  --color-primary-light: #dcfce7;
+  
+  /* Secondary Colors - Warm Blue */
+  --color-secondary: #3b82f6;
+  --color-secondary-foreground: #ffffff;
+  --color-secondary-hover: #2563eb;
+  --color-secondary-light: #dbeafe;
+  
+  /* Success & Status Colors */
+  --color-success: #10b981;
+  --color-success-foreground: #ffffff;
+  --color-success-light: #d1fae5;
+  
+  /* Warning Colors */
+  --color-warning: #f59e0b;
+  --color-warning-foreground: #ffffff;
+  --color-warning-light: #fef3c7;
+  
+  /* Error Colors */
+  --color-error: #ef4444;
+  --color-error-foreground: #ffffff;
+  --color-error-light: #fee2e2;
+  
+  /* Neutral Colors - Modern Gray Scale */
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+  --color-muted: #f8fafc;
+  --color-muted-foreground: #64748b;
+  --color-neutral: #f1f5f9;
+  --color-neutral-foreground: #475569;
+  --color-border: #e2e8f0;
+  --color-input: #ffffff;
+  --color-ring: #22c55e;
+  
+  /* Card & Surface Colors */
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+  
+  /* Accent Colors */
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #0f172a;
+  
+  /* Destructive Colors */
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  
+  /* Shadows - Modern Elevation System */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* Border Radius - Modern Rounded Corners */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
 }
 
+/* === Dark Mode Support === */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: #0a0a0a;
-    --color-foreground: #ededed;
-    --color-neutral: #1f2937;
+    --color-background: #0f172a;
+    --color-foreground: #f8fafc;
+    --color-muted: #1e293b;
+    --color-muted-foreground: #94a3b8;
+    --color-neutral: #334155;
+    --color-neutral-foreground: #cbd5e1;
+    --color-border: #334155;
+    --color-input: #1e293b;
+    --color-card: #1e293b;
+    --color-card-foreground: #f8fafc;
+    --color-popover: #1e293b;
+    --color-popover-foreground: #f8fafc;
+    --color-accent: #334155;
+    --color-accent-foreground: #f8fafc;
+    --color-primary-light: #065f46;
+    --color-secondary-light: #1e3a8a;
+    --color-success-light: #064e3b;
+    --color-warning-light: #92400e;
+    --color-error-light: #991b1b;
   }
+}
+
+/* === Base Styles === */
+* {
+  border-color: var(--color-border);
 }
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  font-feature-settings: 'rlig' 1, 'calt' 1;
   @apply antialiased;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Tailwind layers for custom utilities */
+/* === Typography Enhancements === */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1.125rem; }
+h6 { font-size: 1rem; }
+
+/* === Utility Classes === */
 @layer utilities {
   .shadow-card {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-md);
   }
-  .transition-smooth {
-    transition: all 0.3s ease-in-out;
+  
+  .shadow-card-hover {
+    box-shadow: var(--shadow-lg);
   }
+  
+  .shadow-elevated {
+    box-shadow: var(--shadow-xl);
+  }
+  
+  .gradient-primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  }
+  
+  .gradient-success {
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-primary) 100%);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .glass-effect {
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .dark .glass-effect {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(51, 65, 85, 0.2);
+  }
+  
+  .neumorphism {
+    background: var(--color-background);
+    box-shadow: 
+      8px 8px 16px rgba(0, 0, 0, 0.1),
+      -8px -8px 16px rgba(255, 255, 255, 0.7);
+  }
+  
+  .dark .neumorphism {
+    box-shadow: 
+      8px 8px 16px rgba(0, 0, 0, 0.3),
+      -8px -8px 16px rgba(255, 255, 255, 0.02);
+  }
+  
+  .hover-lift {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+  
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary-hover;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20;
+    @apply transition duration-300 font-medium rounded-md px-4 py-2;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary-hover;
+    @apply focus:outline-none focus:ring-2 focus:ring-secondary/20;
+    @apply transition duration-300 font-medium rounded-md px-4 py-2;
+    }
+  
+  .btn-ghost {
+    @apply bg-transparent text-foreground hover:bg-muted;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20;
+    @apply transition duration-300 font-medium rounded-md px-4 py-2;
+    }
+}
+
+/* === Form Enhancements === */
+.form-floating {
+  position: relative;
+}
+
+.form-floating > .form-control {
+  height: 3.5rem;
+  padding: 1rem 0.75rem 0.5rem;
+}
+
+.form-floating > label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  padding: 1rem 0.75rem;
+  pointer-events: none;
+  border: 1px solid transparent;
+  transform-origin: 0 0;
+  transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+  opacity: 0.65;
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+}
+
+/* === Animation Keyframes === */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* === Responsive Design Helpers === */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+}
+
+/* === RTL Support Enhancements === */
+[dir="rtl"] .slide-in-from-left {
+  animation: slideIn reverse 0.5s ease-out;
+}
+
+[dir="rtl"] .text-right {
+  text-align: right;
+}
+
+/* === Loading States === */
+.loading-skeleton {
+  background: linear-gradient(90deg, var(--color-muted) 25%, var(--color-neutral) 50%, var(--color-muted) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* === Custom Scrollbar === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-foreground);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }

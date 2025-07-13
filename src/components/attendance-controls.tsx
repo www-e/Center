@@ -1,26 +1,44 @@
 // src/components/attendance-controls.tsx
 'use client';
 
-// NEW: Import useState to manage modal state
 import { useState } from 'react';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { translations, scheduleData } from '@/lib/constants';
 import { Grade, GroupDay } from '@prisma/client';
-// NEW: Import the modal component
 import { QrScannerModal } from './qr-scanner-modal';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Filter, 
+  Calendar, 
+  Clock, 
+  GraduationCap, 
+  QrCode, 
+  Users, 
+  ChevronLeft, 
+  ChevronRight,
+  X,
+  ScanLine,
+  UserCheck
+} from 'lucide-react';
 
 export function AttendanceControls() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
 
-  // NEW: State to control the visibility and mode of the QR scanner modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMakeupMode, setIsMakeupMode] = useState(false);
 
   const currentGrade = searchParams.get('grade') as Grade | null;
   const currentGroupDay = searchParams.get('groupDay') as GroupDay | null;
   const currentGroupTime = searchParams.get('groupTime') as string | null;
+
+  // Get current month/year from URL or default to current
+  const currentYear = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+  const currentMonth = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
 
   function handleFilterChange(key: 'grade' | 'groupDay' | 'groupTime', value: string) {
     const params = new URLSearchParams(searchParams);
@@ -34,29 +52,29 @@ export function AttendanceControls() {
       params.delete('groupTime');
     }
     if (key === 'groupDay') {
-        params.delete('groupTime');
+      params.delete('groupTime');
     }
     replace(`${pathname}?${params.toString()}`);
   }
 
+  function clearFilter(key: 'grade' | 'groupDay' | 'groupTime') {
+    handleFilterChange(key, '');
+  }
+
   function handleMonthChange(direction: 'next' | 'prev') {
     const params = new URLSearchParams(searchParams);
-    const year = parseInt(params.get('year') || new Date().getFullYear().toString());
-    const month = parseInt(params.get('month') || (new Date().getMonth() + 1).toString());
-
     let newDate;
     if (direction === 'next') {
-        newDate = new Date(year, month, 1);
+      newDate = new Date(currentYear, currentMonth, 1);
     } else {
-        newDate = new Date(year, month - 2, 1);
+      newDate = new Date(currentYear, currentMonth - 2, 1);
     }
 
     params.set('year', newDate.getFullYear().toString());
     params.set('month', (newDate.getMonth() + 1).toString());
     replace(`${pathname}?${params.toString()}`);
   }
-  
-  // NEW: Function to open the modal in the correct mode
+
   function openScanner(makeup: boolean) {
     setIsMakeupMode(makeup);
     setIsModalOpen(true);
@@ -65,73 +83,225 @@ export function AttendanceControls() {
   const groupDayOptions = currentGrade ? Object.keys(scheduleData[currentGrade].groupDays) : [];
   const groupTimeOptions = (currentGrade && currentGroupDay && scheduleData[currentGrade].groupDays[currentGroupDay as keyof typeof scheduleData[Grade]['groupDays']]) || [];
 
+  // Calculate active filters count
+  const activeFiltersCount = [currentGrade, currentGroupDay, currentGroupTime].filter(Boolean).length;
+
+  // Format current month display
+  const currentMonthName = new Date(currentYear, currentMonth - 1).toLocaleString('ar-EG', { 
+    month: 'long', 
+    year: 'numeric' 
+  });
+
   return (
-    // NEW: Wrap the output in a React Fragment (<> ... </>) to include the modal
     <>
       <QrScannerModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         isMakeup={isMakeupMode}
       />
-      <div className="bg-white p-4 rounded-lg shadow mb-8" dir="rtl">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-          {/* Filters (This part is unchanged) */}
-          <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="grade-filter" className="block text-sm font-medium text-gray-700 mb-1">الصف</label>
-              <select
-                id="grade-filter"
-                value={currentGrade ?? ''}
-                onChange={(e) => handleFilterChange('grade', e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
-              >
-                <option value="">الكل</option>
-                {Object.values(Grade).map(g => <option key={g} value={g}>{translations[g]}</option>)}
-              </select>
+      
+      <div className="space-y-6">
+        {/* Filter Header */}
+        <Card className="shadow-card glass-effect">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Filter className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold text-foreground">فلاتر البحث المتقدمة</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {activeFiltersCount > 0 ? `${activeFiltersCount} فلتر نشط` : 'لا توجد فلاتر مطبقة'}
+                  </p>
+                </div>
+              </div>
+              
+              {activeFiltersCount > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => replace(pathname)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  مسح الكل
+                </Button>
+              )}
             </div>
-            <div>
-              <label htmlFor="groupday-filter" className="block text-sm font-medium text-gray-700 mb-1">الأيام</label>
-              <select
-                id="groupday-filter"
-                disabled={!currentGrade}
-                value={currentGroupDay ?? ''}
-                onChange={(e) => handleFilterChange('groupDay', e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md shadow-sm disabled:bg-gray-100"
-              >
-                <option value="">الكل</option>
-                {groupDayOptions.map(gd => <option key={gd} value={gd}>{translations[gd as GroupDay]}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="grouptime-filter" className="block text-sm font-medium text-gray-700 mb-1">الميعاد</label>
-              <select
-                id="grouptime-filter"
-                disabled={!currentGroupDay}
-                value={currentGroupTime ?? ''}
-                onChange={(e) => handleFilterChange('groupTime', e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md shadow-sm disabled:bg-gray-100"
-              >
-                <option value="">الكل</option>
-                {(groupTimeOptions as string[]).map(gt => <option key={gt} value={gt}>{gt}</option>)}
-              </select>
-            </div>
-          </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Active Filters Display */}
+            {activeFiltersCount > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-foreground">الفلاتر المطبقة:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {currentGrade && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 gap-2">
+                      <GraduationCap className="h-3 w-3" />
+                      {translations[currentGrade]}
+                      <button onClick={() => clearFilter('grade')} className="hover:bg-primary/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {currentGroupDay && (
+                    <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/20 gap-2">
+                      <Calendar className="h-3 w-3" />
+                      {translations[currentGroupDay]}
+                      <button onClick={() => clearFilter('groupDay')} className="hover:bg-secondary/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                  {currentGroupTime && (
+                    <Badge variant="outline" className="bg-success/10 text-success border-success/20 gap-2">
+                      <Clock className="h-3 w-3" />
+                      {currentGroupTime}
+                      <button onClick={() => clearFilter('groupTime')} className="hover:bg-success/20 rounded-full p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
 
-          {/* Month Navigation (This part is unchanged) */}
-          <div className="md:col-span-1 flex justify-center items-center space-x-2 space-x-reverse">
-              <button onClick={() => handleMonthChange('prev')} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">الشهر السابق</button>
-              <button onClick={() => handleMonthChange('next')} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">الشهر التالي</button>
-          </div>
+            {/* Filter Controls */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-primary" />
+                  الصف الدراسي
+                </label>
+                <Select value={currentGrade ?? ''} onValueChange={(value) => handleFilterChange('grade', value)}>
+                  <SelectTrigger className="focus-ring">
+                    <SelectValue placeholder="اختر الصف الدراسي" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">جميع الصفوف</SelectItem>
+                    {Object.values(Grade).map(g => (
+                      <SelectItem key={g} value={g}>{translations[g]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Action Buttons (This part is UPDATED with onClick handlers) */}
-          <div className="md:col-span-2 flex justify-end items-center space-x-3 space-x-reverse">
-              <button onClick={() => openScanner(false)} className="px-5 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-sm hover:bg-green-700 transition-all">
-                  تحضير طالب
-              </button>
-              <button onClick={() => openScanner(true)} className="px-5 py-2 bg-orange-500 text-white font-semibold rounded-lg shadow-sm hover:bg-orange-600 transition-all">
-                  تحضير تعويضي
-              </button>
-          </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-secondary" />
+                  مجموعة الأيام
+                </label>
+                <Select 
+                  value={currentGroupDay ?? ''} 
+                  onValueChange={(value) => handleFilterChange('groupDay', value)}
+                  disabled={!currentGrade}
+                >
+                  <SelectTrigger className="focus-ring disabled:opacity-50">
+                    <SelectValue placeholder="اختر أيام المجموعة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">جميع الأيام</SelectItem>
+                    {groupDayOptions.map(gd => (
+                      <SelectItem key={gd} value={gd}>{translations[gd as GroupDay]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-success" />
+                  ميعاد المجموعة
+                </label>
+                <Select 
+                  value={currentGroupTime ?? ''} 
+                  onValueChange={(value) => handleFilterChange('groupTime', value)}
+                  disabled={!currentGroupDay}
+                >
+                  <SelectTrigger className="focus-ring disabled:opacity-50">
+                    <SelectValue placeholder="اختر ميعاد المجموعة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">جميع المواعيد</SelectItem>
+                    {(groupTimeOptions as string[]).map(gt => (
+                      <SelectItem key={gt} value={gt}>{gt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Month Navigation & Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Month Navigation */}
+          <Card className="shadow-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => handleMonthChange('prev')}
+                  className="flex items-center gap-2 hover-lift"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  الشهر السابق
+                </Button>
+                
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground">{currentMonthName}</div>
+                  <div className="text-sm text-muted-foreground">الشهر الحالي</div>
+                </div>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => handleMonthChange('next')}
+                  className="flex items-center gap-2 hover-lift"
+                >
+                  الشهر التالي
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <Card className="shadow-card">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button
+                  onClick={() => openScanner(false)}
+                  className="btn-primary h-12 text-base font-semibold rounded-xl hover-lift group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <UserCheck className="h-4 w-4" />
+                    </div>
+                    <div className="text-right">
+                      <div>تحضير طالب</div>
+                      <div className="text-xs opacity-90">حضور عادي</div>
+                    </div>
+                  </div>
+                </Button>
+                
+                <Button
+                  onClick={() => openScanner(true)}
+                  className="bg-warning text-white hover:bg-warning/90 h-12 text-base font-semibold rounded-xl hover-lift group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <ScanLine className="h-4 w-4" />
+                    </div>
+                    <div className="text-right">
+                      <div>تحضير تعويضي</div>
+                      <div className="text-xs opacity-90">جلسة تعويضية</div>
+                    </div>
+                  </div>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </>
