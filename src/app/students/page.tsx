@@ -2,25 +2,26 @@
 import { getStudents } from '@/lib/data';
 import { StudentsTable } from '@/components/students-table';
 import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default async function StudentsPage() {
   const students = await getStudents();
 
   return (
-    <main className="p-4 md:p-10 mx-auto w-full max-w-7xl">
-      <div className="flex items-center justify-between mb-8" dir="rtl">
+    <Card className="shadow-card p-4 md:p-10 mx-auto w-full max-w-screen-2xl transition-smooth" dir="rtl">
+      <CardHeader className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">إدارة الطلاب</h1>
-          <p className="text-gray-500 mt-1">عرض وإضافة الطلاب الجدد</p>
+          <CardTitle className="text-3xl font-bold text-foreground">إدارة الطلاب</CardTitle>
+          <p className="text-neutral mt-1">عرض وإضافة الطلاب الجدد</p>
         </div>
-        <Link 
-          href="/students/add" 
-          className="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
-        >
-          + إضافة طالب جديد
-        </Link>
-      </div>
-      <StudentsTable students={students} />
-    </main>
+        <Button asChild variant="default" className="bg-primary text-background hover:bg-primary/90">
+          <Link href="/students/add">+ إضافة طالب جديد</Link>
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <StudentsTable students={students} />
+      </CardContent>
+    </Card>
   );
 }

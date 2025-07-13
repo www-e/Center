@@ -3,6 +3,7 @@ import { getStudentsWithPayments, StudentFilters } from "@/lib/data";
 import { PaymentTable } from "@/components/payment-table";
 import { Grade, GroupDay } from '@prisma/client';
 import { PaymentControls } from "@/components/payment-controls";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export async function PaymentView({
   searchParams,
@@ -23,15 +24,17 @@ export async function PaymentView({
   const studentsWithPayments = await getStudentsWithPayments(year, filters);
 
   return (
-    <main className="p-4 md:p-10 mx-auto w-full max-w-screen-2xl">
-      <div className="flex items-center justify-between mb-6" dir="rtl">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">متابعة المدفوعات لسنة: {year}</h1>
-          <p className="text-gray-500 mt-1">عرض وتسجيل المدفوعات الشهرية للطلاب.</p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <Card className="shadow-card">
+        <CardHeader className="flex items-center justify-between" dir="rtl">
+          <div>
+            <CardTitle className="text-3xl font-bold text-foreground">متابعة المدفوعات لسنة: {year}</CardTitle>
+            <p className="text-neutral mt-1">عرض وتسجيل المدفوعات الشهرية للطلاب.</p>
+          </div>
+        </CardHeader>
+      </Card>
       <PaymentControls />
       <PaymentTable students={studentsWithPayments} year={year} />
-    </main>
+    </div>
   );
 }
