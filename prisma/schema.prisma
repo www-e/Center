@@ -1,0 +1,97 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db" // Corrected the path from the error log
+}
+
+// ENUMS for predefined choices to ensure data consistency
+enum Grade {
+  FIRST
+  SECOND
+  THIRD
+}
+
+enum Section {
+  SCIENTIFIC
+  LITERARY
+  NONE // For Grade 1
+}
+
+enum GroupDay {
+  SAT_TUE
+  SUN_WED
+  MON_THU
+  SAT_TUE_THU // For Grade 3 Scientific
+}
+
+enum PaymentPref {
+  PREPAID
+  POSTPAID
+}
+
+// The main model for our students
+model Student {
+  id              String   @id @default(cuid())
+  studentId       String   @unique // The human-readable ID, e.g., std-g1-0001
+  name            String
+  phone           String
+  parentPhone     String
+  grade           Grade
+  section         Section
+  groupDay        GroupDay
+  groupTime       String // e.g., "02:00 PM"
+  paymentPref     PaymentPref
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  attendance      AttendanceRecord[]
+  payments        PaymentRecord[]
+}
+
+// Records a student's attendance for a specific session
+model AttendanceRecord {
+  id        String   @id @default(cuid())
+  studentId String
+  date      DateTime // The specific date of the session, e.g., 2024-08-06
+  isMakeup  Boolean  @default(false) // To mark if it was a makeup session
+
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, date]) // Ensures a student can only be marked once per day
+}
+
+// Tracks the payment status for a student for a specific month
+model PaymentRecord {
+  id          String   @id @default(cuid())
+  studentId   String
+  month       Int      // e.g., 8 for August
+  year        Int      // e.g., 2024
+  isPaid      Boolean  @default(false)
+  paidAt      DateTime? // The timestamp when the payment was confirmed
+
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  receipt     Receipt?  // This is now just a virtual back-relation
+
+  @@unique([studentId, month, year]) // A student has one payment record per month
+}
+
+// Stores information for a generated receipt
+model Receipt {
+  id              String   @id @default(cuid())
+  paymentRecordId String   @unique
+  studentName     String
+  studentReadableId String
+  amount          Float
+  month           Int
+  year            Int
+  issuedAt        DateTime @default(now())
+
+  // This is the side that defines the physical relationship
+  paymentRecord   PaymentRecord @relation(fields: [paymentRecordId], references: [id])
+}
