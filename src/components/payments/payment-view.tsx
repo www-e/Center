@@ -9,13 +9,15 @@ export async function PaymentView({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Using the same, correct access pattern
-  const year = Number(searchParams.year) || new Date().getFullYear();
+  // Await searchParams to handle async nature in Next.js 15
+  const params = await searchParams;
+
+  const year = Number(params.year) || new Date().getFullYear();
 
   const filters: StudentFilters = {
-    grade: searchParams.grade as Grade | undefined,
-    groupDay: searchParams.groupDay as GroupDay | undefined,
-    groupTime: searchParams.groupTime as string | undefined,
+    grade: params.grade as Grade | undefined,
+    groupDay: params.groupDay as GroupDay | undefined,
+    groupTime: params.groupTime as string | undefined,
   };
 
   const studentsWithPayments = await getStudentsWithPayments(year, filters);

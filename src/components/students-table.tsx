@@ -1,6 +1,8 @@
 // src/components/students-table.tsx
 import { Student } from '@prisma/client';
 import { translations } from '@/lib/constants';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type StudentsTableProps = {
   students: Student[];
@@ -9,44 +11,46 @@ type StudentsTableProps = {
 export function StudentsTable({ students }: StudentsTableProps) {
   if (students.length === 0) {
     return (
-      <div className="text-center py-16 bg-white rounded-lg shadow">
-        <h3 className="text-xl font-semibold text-gray-700">لا يوجد طلاب بعد</h3>
-        <p className="text-gray-500 mt-2">ابدأ بإضافة أول طالب لعرض بياناته هنا.</p>
-      </div>
+      <Card className="shadow-card text-center">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-foreground">لا يوجد طلاب بعد</CardTitle>
+        </CardHeader>
+        <CardContent className="text-neutral">
+          <p>ابدأ بإضافة أول طالب لعرض بياناته هنا.</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden" dir="rtl">
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-gray-700">
-          <thead className="bg-gray-100 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-3 text-right font-semibold">كود الطالب</th>
-              <th className="px-6 py-3 text-right font-semibold">الاسم</th>
-              <th className="px-6 py-3 text-right font-semibold">الهاتف</th>
-              <th className="px-6 py-3 text-right font-semibold">الصف</th>
-              <th className="px-6 py-3 text-right font-semibold">المجموعة</th>
-              <th className="px-6 py-3 text-right font-semibold">الميعاد</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {students.map((student) => (
-              <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap font-mono text-gray-800">{student.studentId}</td>
-                <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">{student.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{student.phone}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{translations[student.grade]}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {translations[student.groupDay]}
-                  {student.section !== 'NONE' && <span className="text-xs text-gray-500 mr-2">({translations[student.section]})</span>}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">{student.groupTime}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Card className="shadow-card overflow-hidden">
+      <Table>
+        <TableHeader className="bg-neutral">
+          <TableRow>
+            <TableHead className="px-6 py-3 text-right font-semibold text-foreground">كود الطالب</TableHead>
+            <TableHead className="px-6 py-3 text-right font-semibold text-foreground">الاسم</TableHead>
+            <TableHead className="px-6 py-3 text-right font-semibold text-foreground">الهاتف</TableHead>
+            <TableHead className="px-6 py-3 text-right font-semibold text-foreground">الصف</TableHead>
+            <TableHead className="px-6 py-3 text-right font-semibold text-foreground">المجموعة</TableHead>
+            <TableHead className="px-6 py-3 text-right font-semibold text-foreground">الميعاد</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody className="divide-y divide-neutral">
+          {students.map((student) => (
+            <TableRow key={student.id} className="hover:bg-neutral transition-smooth">
+              <TableCell className="px-6 py-4 whitespace-nowrap font-mono text-foreground">{student.studentId}</TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap font-semibold text-foreground">{student.name}</TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap">{student.phone}</TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap">{translations[student.grade]}</TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap">
+                {translations[student.groupDay]}
+                {student.section !== 'NONE' && <span className="text-xs text-neutral mr-2">({translations[student.section]})</span>}
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap">{student.groupTime}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
   );
 }

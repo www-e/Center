@@ -3,6 +3,9 @@
 
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { markAttendance, AttendanceState } from '@/lib/actions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 
 type QrScannerModalProps = {
   isOpen: boolean;
@@ -36,43 +39,36 @@ export function QrScannerModal({ isOpen, onClose, isMakeup }: QrScannerModalProp
     inputRef.current?.focus();
   }
 
-  if (!isOpen) return null;
-
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
-      onClick={onClose}
-    >
-      <div 
-        className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
-        dir="rtl"
-      >
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          {isMakeup ? 'تسجيل حضور تعويضي' : 'تسجيل حضور'}
-        </h2>
-        <p className="text-gray-500 mb-6">امسح كود الطالب ضوئياً أو أدخله يدوياً. النظام جاهز للمسح التالي تلقائياً.</p>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-foreground">
+            {isMakeup ? 'تسجيل حضور تعويضي' : 'تسجيل حضور'}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-neutral mb-6">امسح كود الطالب ضوئياً أو أدخله يدوياً. النظام جاهز للمسح التالي تلقائياً.</p>
         
         <form onSubmit={handleSubmit}>
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            className="w-full p-3 border border-gray-400 rounded-md text-center text-lg font-mono"
+            className="w-full p-3 text-center text-lg font-mono transition-smooth"
             placeholder="... في انتظار كود الطالب"
           />
         </form>
 
         {result && (
-          <div 
-            className={`mt-6 p-4 rounded-md text-center ${result.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-          >
-            <p className="font-semibold">{result.studentName}</p>
-            <p>{result.message}</p>
-          </div>
+          <Card className={`mt-6 ${result.success ? 'bg-success/20 text-success' : 'bg-error/20 text-error'}`}>
+            <CardContent className="p-4 text-center">
+              <p className="font-semibold">{result.studentName}</p>
+              <p>{result.message}</p>
+            </CardContent>
+          </Card>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

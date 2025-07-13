@@ -10,15 +10,16 @@ export async function AttendanceView({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // THE FIX: Accessing searchParams directly without optional chaining.
-  // We handle undefined values explicitly.
-  const year = Number(searchParams.year) || new Date().getFullYear();
-  const month = Number(searchParams.month) || new Date().getMonth() + 1;
+  // Await searchParams to handle async nature in Next.js 15
+  const params = await searchParams;
+
+  const year = Number(params.year) || new Date().getFullYear();
+  const month = Number(params.month) || new Date().getMonth() + 1;
 
   const filters: StudentFilters = {
-    grade: searchParams.grade as Grade | undefined,
-    groupDay: searchParams.groupDay as GroupDay | undefined,
-    groupTime: searchParams.groupTime as string | undefined,
+    grade: params.grade as Grade | undefined,
+    groupDay: params.groupDay as GroupDay | undefined,
+    groupTime: params.groupTime as string | undefined,
   };
 
   const studentsWithAttendance = await getFilteredStudentsWithAttendance(year, month, filters);

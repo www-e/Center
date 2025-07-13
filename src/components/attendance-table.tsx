@@ -1,5 +1,7 @@
 // src/components/attendance-table.tsx
 import { Student, AttendanceRecord } from '@prisma/client';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type StudentWithAttendance = Student & {
   attendance: AttendanceRecord[];
@@ -19,10 +21,14 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
   // If no group is selected, there are no session dates to show.
   if (sessionDates.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-8 text-center">
-        <h2 className="text-lg font-semibold text-gray-600">جدول الحضور</h2>
-        <p className="text-gray-400 mt-2">الرجاء تحديد "الصف الدراسي" و "مجموعة الأيام" من الفلاتر أعلاه لعرض الطلاب وجدول الحضور الخاص بهم.</p>
-      </div>
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-foreground">جدول الحضور</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center text-neutral">
+          <p>الرجاء تحديد "الصف الدراسي" و "مجموعة الأيام" من الفلاتر أعلاه لعرض الطلاب وجدول الحضور الخاص بهم.</p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -38,45 +44,45 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
   });
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-x-auto" dir="rtl">
-      <table className="min-w-full text-sm">
-        <thead className="bg-gray-100 border-b border-gray-200">
-          <tr>
-            <th className="px-4 py-3 text-right font-semibold text-gray-700 sticky right-0 bg-gray-100 z-10">اسم الطالب</th>
+    <Card className="shadow-card overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-neutral">
+            <TableHead className="px-4 py-3 text-right font-semibold text-foreground sticky right-0 bg-neutral z-10">اسم الطالب</TableHead>
             {sessionDates.map(date => (
-              <th key={date.toISOString()} className="px-4 py-3 text-center font-semibold text-gray-600 w-24">
+              <TableHead key={date.toISOString()} className="px-4 py-3 text-center font-semibold text-foreground w-24">
                 {formatDateHeader(date)}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {students.map(student => {
             const studentRecords = attendanceMap.get(student.id);
             return (
-              <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-800 sticky right-0 bg-white hover:bg-gray-50 z-10">{student.name}</td>
+              <TableRow key={student.id} className="hover:bg-neutral transition-smooth">
+                <TableCell className="px-4 py-3 whitespace-nowrap font-semibold text-foreground sticky right-0 bg-background hover:bg-neutral z-10">{student.name}</TableCell>
                 {sessionDates.map(date => {
                   const record = studentRecords?.get(date.toISOString().split('T')[0]);
                   return (
-                    <td key={date.toISOString()} className="px-4 py-3 text-center">
+                    <TableCell key={date.toISOString()} className="px-4 py-3 text-center">
                       {record ? (
                         record.isMakeup ? (
-                          <span className="text-blue-500 font-bold" title="حضور تعويضي">م</span>
+                          <span className="text-primary font-bold" title="حضور تعويضي">م</span>
                         ) : (
-                          <span className="text-green-500 font-bold" title="حاضر">✔</span>
+                          <span className="text-success font-bold" title="حاضر">✔</span>
                         )
                       ) : (
-                        <span className="text-gray-300">-</span>
+                        <span className="text-neutral">-</span>
                       )}
-                    </td>
+                    </TableCell>
                   );
                 })}
-              </tr>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </Card>
   );
 }

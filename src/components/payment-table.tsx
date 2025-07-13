@@ -1,5 +1,7 @@
 // src/components/payment-table.tsx
 import { Student, PaymentRecord } from '@prisma/client';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card } from '@/components/ui/card';
 
 type StudentWithPayments = Student & {
   payments: PaymentRecord[];
@@ -24,45 +26,45 @@ export function PaymentTable({ students, year }: PaymentTableProps) {
   });
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-x-auto" dir="rtl">
-      <table className="min-w-full text-sm">
-        <thead className="bg-gray-100 border-b border-gray-200">
-          <tr>
-            <th className="px-4 py-3 text-right font-semibold text-gray-700 sticky right-0 bg-gray-100 z-10">اسم الطالب</th>
+    <Card className="shadow-card overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-neutral">
+            <TableHead className="px-4 py-3 text-right font-semibold text-foreground sticky right-0 bg-neutral z-10">اسم الطالب</TableHead>
             {months.map(month => (
-              <th key={month} className="px-3 py-3 text-center font-semibold text-gray-600 w-24">
+              <TableHead key={month} className="px-3 py-3 text-center font-semibold text-foreground w-24">
                 {new Date(year, month - 1).toLocaleString('ar-EG', { month: 'short' })}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {students.map(student => {
             const studentPayments = paymentMap.get(student.id);
             return (
-              <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 font-semibold text-gray-800 sticky right-0 bg-white hover:bg-gray-50 z-10">{student.name}</td>
+              <TableRow key={student.id} className="hover:bg-neutral transition-smooth">
+                <TableCell className="px-4 py-3 font-semibold text-foreground sticky right-0 bg-background hover:bg-neutral z-10">{student.name}</TableCell>
                 {months.map(month => {
                   const record = studentPayments?.get(month);
                   return (
-                    <td key={month} className="px-3 py-3 text-center">
+                    <TableCell key={month} className="px-3 py-3 text-center">
                       {record?.isPaid ? (
-                        <span className="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
+                        <span className="px-2 py-1 text-xs font-semibold text-success bg-success/20 rounded-full">
                           مدفوع
                         </span>
                       ) : (
-                        <span className="px-2 py-1 text-xs font-semibold text-red-800 bg-red-100 rounded-full">
+                        <span className="px-2 py-1 text-xs font-semibold text-error bg-error/20 rounded-full">
                           غير مدفوع
                         </span>
                       )}
-                    </td>
+                    </TableCell>
                   );
                 })}
-              </tr>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </Card>
   );
 }

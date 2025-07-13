@@ -2,13 +2,14 @@
 import { PaymentView } from '@/components/payments/payment-view';
 import { Suspense } from 'react';
 
-export default function PaymentsPage({
+// Make the page async to align with async child component
+export default async function PaymentsPage({
   searchParams,
 }: {
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>جاري التحميل...</div>}>
       <PaymentView searchParams={searchParams || {}} />
     </Suspense>
   );

@@ -4,6 +4,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useActionState } from 'react';
 import { recordPayment, PaymentState } from '@/lib/actions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 type PaymentModalProps = {
   isOpen: boolean;
@@ -31,66 +35,72 @@ export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   // The view to show AFTER a successful payment
   if (state.success && state.receipt) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={onClose}>
-        <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()} dir="rtl">
-          <h2 className="text-2xl font-bold text-green-600 mb-4">تم الاستلام بنجاح</h2>
-          <div className="space-y-3 text-gray-700 border-t border-b py-4 my-4">
-            <p><strong>اسم الطالب:</strong> {state.receipt.studentName}</p>
-            <p><strong>كود الطالب:</strong> {state.receipt.studentReadableId}</p>
-            <p><strong>المبلغ:</strong> {state.receipt.amount.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' })}</p>
-            <p><strong>عن شهر:</strong> {new Date(state.receipt.year, state.receipt.month - 1).toLocaleString('ar-EG', { month: 'long', year: 'numeric' })}</p>
-            <p><strong>تاريخ الايصال:</strong> {new Date(state.receipt.issuedAt).toLocaleString('ar-EG')}</p>
-          </div>
-          <button onClick={onClose} className="w-full px-6 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700">
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-success">تم الاستلام بنجاح</DialogTitle>
+          </DialogHeader>
+          <Card className="shadow-card">
+            <CardContent className="space-y-3 text-foreground pt-4">
+              <p><strong>اسم الطالب:</strong> {state.receipt.studentName}</p>
+              <p><strong>كود الطالب:</strong> {state.receipt.studentReadableId}</p>
+              <p><strong>المبلغ:</strong> {state.receipt.amount.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP' })}</p>
+              <p><strong>عن شهر:</strong> {new Date(state.receipt.year, state.receipt.month - 1).toLocaleString('ar-EG', { month: 'long', year: 'numeric' })}</p>
+              <p><strong>تاريخ الايصال:</strong> {new Date(state.receipt.issuedAt).toLocaleString('ar-EG')}</p>
+            </CardContent>
+          </Card>
+          <Button onClick={onClose} className="w-full bg-primary text-background hover:bg-primary/90 transition-smooth">
             إغلاق (أو عملية جديدة)
-          </button>
-        </div>
-      </div>
+          </Button>
+        </DialogContent>
+      </Dialog>
     );
   }
 
   // The initial form view
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()} dir="rtl">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">تسجيل دفعة جديدة</h2>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-foreground">تسجيل دفعة جديدة</DialogTitle>
+        </DialogHeader>
         <form ref={formRef} action={formAction} className="space-y-4">
           <div>
-            <label htmlFor="studentReadableId" className="block text-sm font-medium text-gray-700 mb-1">كود الطالب (من السكانر)</label>
-            <input
+            <label htmlFor="studentReadableId" className="block text-sm font-medium text-foreground mb-1">كود الطالب (من السكانر)</label>
+            <Input
               ref={inputRef}
               type="text"
               name="studentReadableId"
               id="studentReadableId"
-              className="w-full p-2 border border-gray-300 rounded-md font-mono"
+              className="w-full p-2 font-mono"
               required
             />
           </div>
           <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">المبلغ المدفوع</label>
-            <input
+            <label htmlFor="amount" className="block text-sm font-medium text-foreground mb-1">المبلغ المدفوع</label>
+            <Input
               type="number"
               name="amount"
               id="amount"
-              className="w-full p-2 border border-gray-300 rounded-md"
+              className="w-full p-2"
               required
             />
           </div>
-          <button type="submit" className="w-full px-6 py-3 bg-green-600 text-white font-bold rounded-md shadow-sm hover:bg-green-700">
+          <Button type="submit" className="w-full bg-success text-background hover:bg-success/90 transition-smooth">
             تسجيل الدفع
-          </button>
+          </Button>
         </form>
         {state && !state.success && state.message && (
-          <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-md text-center">
-            <p>{state.message}</p>
-          </div>
+          <Card className="mt-4 bg-error/20 text-error">
+            <CardContent className="p-3 text-center">
+              <p>{state.message}</p>
+            </CardContent>
+          </Card>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
