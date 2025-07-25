@@ -42,11 +42,14 @@ export function AttendanceControls() {
 
   function handleFilterChange(key: 'grade' | 'groupDay' | 'groupTime', value: string) {
     const params = new URLSearchParams(searchParams);
-    if (value=== "ALL" || value === "") {
-      params.set(key, value);
-    } else {
+    
+    if (value === "ALL" || value === "") {
       params.delete(key);
+    } else {
+      params.set(key, value);
     }
+    
+    // Clear dependent filters when parent filter changes
     if (key === 'grade') {
       params.delete('groupDay');
       params.delete('groupTime');
@@ -54,6 +57,7 @@ export function AttendanceControls() {
     if (key === 'groupDay') {
       params.delete('groupTime');
     }
+    
     replace(`${pathname}?${params.toString()}`);
   }
 
@@ -121,7 +125,13 @@ export function AttendanceControls() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => replace(pathname)}
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams);
+                    params.delete('grade');
+                    params.delete('groupDay');
+                    params.delete('groupTime');
+                    replace(`${pathname}?${params.toString()}`);
+                  }}
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4 mr-2" />

@@ -21,15 +21,31 @@ import {
 type PaymentModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  targetMonth?: number;
+  targetYear?: number;
 };
 
-export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
+export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }: PaymentModalProps) {
   const [state, setState] = useState<QRPaymentState>({ success: false, message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingInfo, setIsLoadingInfo] = useState(false);
   const [studentInfo, setStudentInfo] = useState<any>(null);
   const [studentCode, setStudentCode] = useState('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Check if we're dealing with a non-current month
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
+  const paymentMonth = targetMonth || currentMonth;
+  const paymentYear = targetYear || currentYear;
+  const isNonCurrentMonth = paymentMonth !== currentMonth || paymentYear !== currentYear;
+
+  const monthNames = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
 
   // Auto-focus the input when the modal opens and reset state
   useEffect(() => {
@@ -68,15 +84,32 @@ export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
   const handlePayment = async () => {
     if (!studentCode || !studentInfo?.success) return;
     
+    // Show confirmation for non-current month payments
+    if (isNonCurrentMonth && !showConfirmation) {
+      setShowConfirmation(true);
+      return;
+    }
+    
     setIsProcessing(true);
     try {
-      const result = await recordQRPayment(studentCode);
+      const result = await recordQRPayment(studentCode, paymentMonth, paymentYear);
       setState(result);
+      setShowConfirmation(false);
     } catch (error) {
       setState({ success: false, message: 'خطأ في تسجيل الدفع' });
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Handle confirmation dialog
+  const handleConfirmPayment = () => {
+    setShowConfirmation(false);
+    handlePayment();
+  };
+
+  const handleCancelConfirmation = () => {
+    setShowConfirmation(false);
   };
 
   // Success view with enhanced receipt display
@@ -174,6 +207,85 @@ export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
     );
   }
 
+  // Confirmation dialog for non-current month payments
+  if (showConfirmation) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md bg-gradient-to-br from-warning/5 to-primary/5" dir="rtl">
+          <DialogHeader className="text-center pb-4">
+            <div className="w-16 h-16 mx-auto mb-4 bg-warning/10 rounded-2xl flex items-center justify-center">
+              <AlertCircle className="h-8 w-8 text-warning" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-foreground">تأكيد الدفع</DialogTitle>
+            <p className="text-muted-foreground">أنت على وشك تسجيل دفعة لشهر غير حالي</p>
+          </DialogHeader>
+
+          <Card className="bg-warning/10 border-warning/20">
+            <CardContent className="p-4 space-y-3">
+              <div className="text-center">
+                <p className="font-semibold text-foreground mb-2">بيانات الدفعة:</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">الطالب:</span>
+                    <span className="font-medium">{studentInfo?.student?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">المبلغ:</span>
+                    <span className="font-bold text-primary">{studentInfo?.amount?.toLocaleString('ar-EG')} ج.م</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">الشهر:</span>
+                    <span className="font-bold text-warning">{monthNames[paymentMonth - 1]} {paymentYear}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="bg-warning/10 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-warning mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-warning mb-1">تنبيه مهم:</p>
+                <p className="text-muted-foreground">
+                  {paymentMonth < currentMonth || paymentYear < currentYear 
+                    ? 'أنت تسجل دفعة لشهر سابق. تأكد من صحة التاريخ قبل المتابعة.'
+                    : 'أنت تسجل دفعة لشهر مستقبلي. تأكد من صحة التاريخ قبل المتابعة.'
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Button 
+              onClick={handleConfirmPayment}
+              disabled={isProcessing}
+              className="flex-1 bg-warning text-white hover:bg-warning/90 h-12 font-semibold rounded-xl"
+            >
+              {isProcessing ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  جاري التسجيل...
+                </div>
+              ) : (
+                'تأكيد الدفع'
+              )}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleCancelConfirmation}
+              disabled={isProcessing}
+              className="px-6 h-12 font-semibold rounded-xl"
+            >
+              إلغاء
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   // Main payment form view
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -182,8 +294,20 @@ export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
           <div className="w-16 h-16 mx-auto mb-4 bg-gradient-success rounded-2xl flex items-center justify-center">
             <CreditCard className="h-8 w-8 text-white" />
           </div>
-          <DialogTitle className="text-2xl font-bold text-foreground">تسجيل دفعة جديدة</DialogTitle>
-          <p className="text-muted-foreground">امسح كود الطالب وسيتم تحديد المبلغ تلقائياً</p>
+          <DialogTitle className="text-2xl font-bold text-foreground">
+            تسجيل دفعة جديدة
+            {isNonCurrentMonth && (
+              <span className="block text-lg text-warning mt-1">
+                لشهر {monthNames[paymentMonth - 1]} {paymentYear}
+              </span>
+            )}
+          </DialogTitle>
+          <p className="text-muted-foreground">
+            {isNonCurrentMonth 
+              ? `تسجيل دفعة لشهر ${monthNames[paymentMonth - 1]} ${paymentYear} - سيتم طلب تأكيد إضافي`
+              : 'امسح كود الطالب وسيتم تحديد المبلغ تلقائياً'
+            }
+          </p>
         </DialogHeader>
 
         <div className="space-y-6">

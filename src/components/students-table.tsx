@@ -1,6 +1,9 @@
 // src/components/students-table.tsx
 import { Student } from '@prisma/client';
 import { translations } from '@/lib/constants';
+import { generateWhatsAppUrl } from '@/lib/phone-validation';
+import { BulkWhatsAppModal } from './bulk-whatsapp-modal';
+import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,10 +15,8 @@ import {
   Calendar, 
   Clock, 
   QrCode,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Eye
+  MessageCircle,
+  ExternalLink
 } from 'lucide-react';
 
 type StudentsTableProps = {
@@ -49,6 +50,11 @@ function getSectionColor(section: string) {
 }
 
 export function StudentsTable({ students }: StudentsTableProps) {
+  const router = useRouter();
+
+  const handleRowClick = (studentId: string) => {
+    router.push(`/students/add?edit=${studentId}`);
+  };
   if (students.length === 0) {
     return (
       <Card className="shadow-elevated glass-effect text-center">
@@ -142,6 +148,27 @@ export function StudentsTable({ students }: StudentsTableProps) {
         </Card>
       </div>
 
+      {/* Bulk Actions */}
+      <Card className="shadow-card">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              <span className="font-medium text-foreground">إجراءات جماعية</span>
+            </div>
+            <BulkWhatsAppModal 
+              students={students}
+              trigger={
+                <Button variant="outline" className="gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  رسائل WhatsApp جماعية
+                </Button>
+              }
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Main Students Table */}
       <Card className="shadow-elevated overflow-hidden">
         <CardHeader className="border-b border-border/50">
@@ -176,27 +203,30 @@ export function StudentsTable({ students }: StudentsTableProps) {
                   <TableHead className="px-4 py-4 text-center font-semibold text-foreground min-w-[100px]">
                     الميعاد
                   </TableHead>
-                  <TableHead className="px-4 py-4 text-center font-semibold text-foreground min-w-[100px]">
-                    الإجراءات
+                  <TableHead className="px-4 py-4 text-center font-semibold text-foreground min-w-[140px]">
+                    هاتف الطالب
+                  </TableHead>
+                  <TableHead className="px-4 py-4 text-center font-semibold text-foreground min-w-[140px]">
+                    هاتف ولي الأمر
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {students.map((student, index) => (
-                  <TableRow key={student.id} className="hover:bg-muted/50 transition-colors group">
+                  <TableRow 
+                    key={student.id} 
+                    className="hover:bg-muted/50 transition-colors group cursor-pointer hover:bg-primary/5"
+                    onClick={() => handleRowClick(student.id)}
+                  >
                     <TableCell className="px-6 py-4">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center text-white font-bold">
                           {student.name.charAt(0)}
                         </div>
-                        <div className="space-y-1">
+                        <div>
                           <div className="font-semibold text-foreground text-lg">{student.name}</div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Phone className="h-3 w-3" />
-                            {student.phone}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            ولي الأمر: {student.parentPhone}
+                          <div className="text-sm text-muted-foreground">
+                            تاريخ التسجيل: {new Date(student.createdAt).toLocaleDateString('ar-EG')}
                           </div>
                         </div>
                       </div>
@@ -241,17 +271,38 @@ export function StudentsTable({ students }: StudentsTableProps) {
                       </div>
                     </TableCell>
                     <TableCell className="px-4 py-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary/10">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-secondary/10">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-error/10 text-error">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 hover:bg-success/10 text-success hover:text-success"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const whatsappUrl = generateWhatsAppUrl(student.phone, `مرحباً ${student.name}`);
+                          window.open(whatsappUrl, '_blank');
+                        }}
+                        title={`فتح واتساب مع ${student.name}`}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        <span className="font-mono text-xs">{student.phone}</span>
+                        <ExternalLink className="h-3 w-3 ml-1" />
+                      </Button>
+                    </TableCell>
+                    <TableCell className="px-4 py-4 text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 hover:bg-primary/10 text-primary hover:text-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const whatsappUrl = generateWhatsAppUrl(student.parentPhone, `مرحباً، أنا من المركز التعليمي بخصوص الطالب ${student.name}`);
+                          window.open(whatsappUrl, '_blank');
+                        }}
+                        title="فتح واتساب مع ولي الأمر"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        <span className="font-mono text-xs">{student.parentPhone}</span>
+                        <ExternalLink className="h-3 w-3 ml-1" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

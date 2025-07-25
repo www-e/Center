@@ -5,6 +5,7 @@ import { z } from 'zod';
 import prisma from './prisma';
 import { findStudentByCode } from './student-code-utils';
 import { getPaymentAmount } from './payment-config';
+import { wasStudentEnrolled } from './payment-history';
 import { revalidatePath } from 'next/cache';
 import { Receipt } from '@prisma/client';
 
@@ -67,6 +68,14 @@ export async function recordQRPayment(
     const currentMonth = today.getMonth() + 1;
     const currentYear = today.getFullYear();
     const isNonCurrentMonth = paymentMonth !== currentMonth || paymentYear !== currentYear;
+    
+    // Check if student was enrolled for the target month
+    if (!wasStudentEnrolled(student.enrollmentDate, paymentMonth, paymentYear)) {
+      return {
+        success: false,
+        message: `الطالب لم يكن مسجلاً في ${paymentMonth}/${paymentYear}. تاريخ التسجيل: ${new Date(student.enrollmentDate).toLocaleDateString('ar-EG')}`
+      };
+    }
 
     // Use a transaction to ensure both operations succeed or neither do
     const newReceipt = await prisma.$transaction(async (tx) => {

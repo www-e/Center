@@ -1,11 +1,12 @@
 // src/components/payments/payment-view.tsx
-import { getStudentsWithPayments, StudentFilters } from "@/lib/data";
-import { PaymentTable } from "@/components/payment-table";
+import { getStudentsWithMonthlyPayments, StudentFilters } from "@/lib/data";
+import { MonthlyPaymentTable } from "@/components/monthly-payment-table";
 import { Grade, GroupDay } from '@prisma/client';
 import { PaymentControls } from "@/components/payment-controls";
+import { MonthlyPaymentNavigation } from "@/components/monthly-payment-navigation";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Users, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { CreditCard, Users, DollarSign, TrendingUp, AlertCircle, Calendar } from 'lucide-react';
 
 export async function PaymentView({
   searchParams,
@@ -15,7 +16,9 @@ export async function PaymentView({
   // Await searchParams to handle async nature in Next.js 15
   const params = await searchParams;
 
-  const year = Number(params.year) || new Date().getFullYear();
+  const currentDate = new Date();
+  const month = Number(params.month) || (currentDate.getMonth() + 1);
+  const year = Number(params.year) || currentDate.getFullYear();
 
   const filters: StudentFilters = {
     grade: params.grade as Grade | undefined,
@@ -23,28 +26,39 @@ export async function PaymentView({
     groupTime: params.groupTime as string | undefined,
   };
 
-  const studentsWithPayments = await getStudentsWithPayments(year, filters);
+  const studentsWithPayments = await getStudentsWithMonthlyPayments(year, month, filters);
 
-  // Calculate payment statistics
+  // Calculate monthly payment statistics
   const totalStudents = studentsWithPayments.length;
   let totalPaid = 0;
   let totalOverdue = 0;
   let totalRevenue = 0;
 
   studentsWithPayments.forEach(student => {
-    student.payments.forEach(payment => {
-      if (payment.isPaid) {
-        totalPaid++;
-        totalRevenue += 500; // Assuming average payment
-      } else {
+    const monthlyPayment = student.payments.find(p => p.month === month && p.year === year);
+    if (monthlyPayment?.isPaid) {
+      totalPaid++;
+      // Get amount from receipt if available, otherwise use default
+      const receipt = student.payments.find(p => p.receipt)?.receipt;
+      totalRevenue += receipt?.amount || 200;
+    } else {
+      // Check if student was enrolled before this month
+      const enrollmentDate = new Date(student.enrollmentDate);
+      const targetDate = new Date(year, month - 1, 1);
+      if (enrollmentDate <= targetDate) {
         totalOverdue++;
       }
-    });
+    }
   });
 
-  const paymentRate = totalStudents > 0 
-    ? ((totalPaid / (totalStudents * 12)) * 100)
-    : 0;
+  const paymentRate = totalStudents > 0 ? ((totalPaid / totalStudents) * 100) : 0;
+  
+  // Get month name in Arabic
+  const monthNames = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
+  const currentMonthName = monthNames[month - 1];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -57,10 +71,10 @@ export async function PaymentView({
               <CreditCard className="h-10 w-10 text-white" />
             </div>
             <CardTitle className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-              إدارة المدفوعات - {year}
+              مدفوعات {currentMonthName} {year}
             </CardTitle>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              متابعة شاملة للمدفوعات الشهرية مع إمكانية تسجيل دفعات جديدة وإصدار إيصالات تلقائية
+              متابعة مدفوعات الشهر الحالي مع إمكانية التنقل بين الشهور وتسجيل دفعات جديدة
             </p>
             
             {/* Status Badges */}
@@ -90,11 +104,14 @@ export async function PaymentView({
         </Card>
       </div>
 
+      {/* Monthly Navigation */}
+      <MonthlyPaymentNavigation currentMonth={month} currentYear={year} />
+
       {/* Controls Section */}
       <PaymentControls />
 
-      {/* Table Section */}
-      <PaymentTable students={studentsWithPayments} year={year} />
+      {/* Monthly Payment Table */}
+      <MonthlyPaymentTable students={studentsWithPayments} month={month} year={year} />
     </div>
   );
 }

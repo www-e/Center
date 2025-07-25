@@ -34,16 +34,20 @@ export function PaymentControls() {
   const currentGroupDay = searchParams.get('groupDay') as GroupDay | null;
   const currentGroupTime = searchParams.get('groupTime') as string | null;
 
-  // Get current year from URL or default to current
+  // Get current year and month from URL or default to current
   const currentYear = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+  const currentMonth = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
 
   function handleFilterChange(key: 'grade' | 'groupDay' | 'groupTime', value: string) {
     const params = new URLSearchParams(searchParams);
-    if (value=== "ALL" || value === "") {
-      params.set(key, value);
-    } else {
+    
+    if (value === "ALL" || value === "") {
       params.delete(key);
+    } else {
+      params.set(key, value);
     }
+    
+    // Clear dependent filters when parent filter changes
     if (key === 'grade') {
       params.delete('groupDay');
       params.delete('groupTime');
@@ -51,6 +55,7 @@ export function PaymentControls() {
     if (key === 'groupDay') {
       params.delete('groupTime');
     }
+    
     replace(`${pathname}?${params.toString()}`);
   }
 
@@ -76,6 +81,8 @@ export function PaymentControls() {
       <PaymentScannerModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        targetMonth={currentMonth}
+        targetYear={currentYear}
       />
       
       <div className="space-y-6">

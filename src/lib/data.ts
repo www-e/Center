@@ -100,3 +100,78 @@ export async function getStudentsWithPayments(
     throw new Error('Failed to fetch students with payments.');
   }
 }
+
+// New function for monthly payment data with enrollment date awareness
+export async function getStudentsWithMonthlyPayments(
+  year: number,
+  month: number,
+  filters: StudentFilters
+) {
+  try {
+    const students = await prisma.student.findMany({
+      where: {
+        // Apply filters only if they are provided
+        ...(filters.grade && { grade: filters.grade }),
+        ...(filters.groupDay && { groupDay: filters.groupDay }),
+        ...(filters.groupTime && { groupTime: filters.groupTime }),
+      },
+      // Include their payment records for the specific month/year
+      include: {
+        payments: {
+          where: {
+            month: month,
+            year: year,
+          },
+          include: {
+            receipt: true, // Include receipt data for amount information
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+    return students;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch students with monthly payments.');
+  }
+}
+
+// Function to get students with their complete payment history
+export async function getStudentsWithPaymentHistory(
+  year: number,
+  filters: StudentFilters
+) {
+  try {
+    const students = await prisma.student.findMany({
+      where: {
+        // Apply filters only if they are provided
+        ...(filters.grade && { grade: filters.grade }),
+        ...(filters.groupDay && { groupDay: filters.groupDay }),
+        ...(filters.groupTime && { groupTime: filters.groupTime }),
+      },
+      // Include all payment records for the year
+      include: {
+        payments: {
+          where: {
+            year: year,
+          },
+          include: {
+            receipt: true,
+          },
+          orderBy: {
+            month: 'asc',
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+    return students;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch students with payment history.');
+  }
+}

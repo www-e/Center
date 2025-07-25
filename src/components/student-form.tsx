@@ -2,6 +2,7 @@
 'use client';
 
 import { useActionState, useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { createStudent } from '@/lib/actions';
 import { scheduleData, translations } from '@/lib/constants';
 import { Grade, Section, GroupDay, PaymentPref } from '@prisma/client';
@@ -13,8 +14,15 @@ import { User, GraduationCap, CreditCard, CheckCircle, AlertCircle } from 'lucid
 import { getRealTimeValidation, handlePhoneInput } from '@/lib/phone-validation';
 
 export function StudentForm() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const editStudentId = searchParams.get('edit');
+  const isEditMode = !!editStudentId;
+
   const initialState = { message: '', errors: {} };
   const [state, dispatch] = useActionState(createStudent, initialState);
+  const [isLoading, setIsLoading] = useState(false);
+  const [editStudent, setEditStudent] = useState<any>(null);
 
   // Form state management
   const [formData, setFormData] = useState({
@@ -30,6 +38,38 @@ export function StudentForm() {
 
   // Real-time student ID preview
   const [studentIdPreview, setStudentIdPreview] = useState('');
+
+  // Load student data in edit mode
+  useEffect(() => {
+    if (isEditMode && editStudentId) {
+      setIsLoading(true);
+      fetch(`/api/students/${editStudentId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const student = data.student;
+            setEditStudent(student);
+            setFormData({
+              name: student.name,
+              phone: student.phone,
+              parentPhone: student.parentPhone,
+              grade: student.grade,
+              section: student.section,
+              groupDay: student.groupDay,
+              groupTime: student.groupTime,
+              paymentPref: student.paymentPref
+            });
+            setStudentIdPreview(student.studentId);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading student:', error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [isEditMode, editStudentId]);
 
   // Form validation states
   const [fieldValidation, setFieldValidation] = useState({
@@ -138,13 +178,66 @@ export function StudentForm() {
 
   const isFormValid = Object.values(fieldValidation).every(field => field.valid) && formData.groupTime;
 
+  // Loading state for edit mode
+  if (isEditMode && isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-light to-secondary-light p-4 flex items-center justify-center">
+        <Card className="shadow-elevated">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">جاري تحميل بيانات الطالب</h3>
+            <p className="text-muted-foreground">يرجى الانتظار...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light to-secondary-light p-4">
       <div className="max-w-4xl mx-auto">
+        {/* Back Button for Edit Mode */}
+        {isEditMode && (
+          <div className="mb-6">
+            <Button
+              variant="outline"
+              onClick={() => router.push('/students')}
+              className="flex items-center gap-2"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              العودة لقائمة الطلاب
+            </Button>
+          </div>
+        )}
+
         {/* Header Section */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gradient mb-4">إضافة طالب جديد</h1>
-          <p className="text-lg text-muted-foreground">أضف بيانات الطالب وسيتم إنشاء كود الطالب تلقائياً</p>
+          <h1 className="text-4xl font-bold text-gradient mb-4">
+            {isEditMode ? 'تعديل بيانات الطالب' : 'إضافة طالب جديد'}
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            {isEditMode 
+              ? 'قم بتعديل بيانات الطالب وحفظ التغييرات'
+              : 'أضف بيانات الطالب وسيتم إنشاء كود الطالب تلقائياً'
+            }
+          </p>
+          
+          {/* Edit Mode Notification */}
+          {isEditMode && (
+            <div className="mt-4 p-4 bg-warning/10 border border-warning/20 rounded-lg max-w-md mx-auto">
+              <div className="flex items-center gap-2 text-warning">
+                <AlertCircle className="h-5 w-5" />
+                <span className="font-medium">وضع التعديل</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                أنت تقوم بتعديل بيانات طالب موجود. تأكد من صحة البيانات قبل الحفظ.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -154,7 +247,7 @@ export function StudentForm() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-primary">
                   <GraduationCap className="h-5 w-5" />
-                  معاينة كود الطالب
+                  {isEditMode ? 'بيانات الطالب' : 'معاينة كود الطالب'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -427,7 +520,7 @@ export function StudentForm() {
                       }`}
                     >
                       <User className="h-5 w-5 mr-2" />
-                      حفظ بيانات الطالب
+                      {isEditMode ? 'حفظ التغييرات' : 'حفظ بيانات الطالب'}
                     </Button>
                   </div>
                 </form>

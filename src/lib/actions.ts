@@ -5,28 +5,36 @@ import { z } from 'zod';
 import prisma from './prisma';
 import { getNextStudentId } from './data';
 import { findStudentByCode } from './student-code-utils';
-import { validateEgyptianPhone } from './phone-validation';
+import { EgyptianPhoneSchema } from './phone-validation';
 import { Grade, Section, GroupDay, PaymentPref } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Receipt } from '@prisma/client'; // Add Receipt to the import
 
-// Define the shape of our form data using Zod for validation
+// Enhanced student validation schema with comprehensive error messages
 const StudentSchema = z.object({
-  name: z.string().min(3, 'الاسم يجب أن يكون 3 أحرف على الأقل'),
-  phone: z.string().refine((phone) => {
-    const validation = validateEgyptianPhone(phone);
-    return validation.isValid;
-  }, 'رقم الهاتف غير صحيح - يجب أن يبدأ بـ 01 ويكون 11 رقم'),
-  parentPhone: z.string().refine((phone) => {
-    const validation = validateEgyptianPhone(phone);
-    return validation.isValid;
-  }, 'رقم هاتف ولي الأمر غير صحيح - يجب أن يبدأ بـ 01 ويكون 11 رقم'),
-  grade: z.nativeEnum(Grade),
-  section: z.nativeEnum(Section),
-  groupDay: z.nativeEnum(GroupDay),
-  groupTime: z.string().min(1, 'يرجى اختيار ميعاد المجموعة'),
-  paymentPref: z.nativeEnum(PaymentPref),
+  name: z.string()
+    .min(1, 'اسم الطالب مطلوب')
+    .min(3, 'الاسم يجب أن يكون 3 أحرف على الأقل')
+    .max(100, 'الاسم طويل جداً (الحد الأقصى 100 حرف)')
+    .regex(/^[\u0600-\u06FF\s]+$/, 'الاسم يجب أن يحتوي على أحرف عربية فقط'),
+  phone: EgyptianPhoneSchema,
+  parentPhone: EgyptianPhoneSchema,
+  grade: z.nativeEnum(Grade, {
+    errorMap: () => ({ message: 'يرجى اختيار الصف الدراسي' })
+  }),
+  section: z.nativeEnum(Section, {
+    errorMap: () => ({ message: 'يرجى اختيار الشعبة' })
+  }),
+  groupDay: z.nativeEnum(GroupDay, {
+    errorMap: () => ({ message: 'يرجى اختيار أيام المجموعة' })
+  }),
+  groupTime: z.string()
+    .min(1, 'يرجى اختيار ميعاد المجموعة')
+    .regex(/^\d{2}:\d{2}\s(AM|PM)$/, 'صيغة الميعاد غير صحيحة'),
+  paymentPref: z.nativeEnum(PaymentPref, {
+    errorMap: () => ({ message: 'يرجى اختيار طريقة الدفع' })
+  }),
 });
 
 export type State = {
@@ -36,31 +44,57 @@ export type State = {
   message?: string | null;
 };
 
-// The main server action
+// The main server action with enhanced error handling
 export async function createStudent(prevState: State, formData: FormData) {
-  // 1. Validate the form data
-  const validatedFields = StudentSchema.safeParse(
-    Object.fromEntries(formData.entries())
-  );
-
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'فشل في التحقق من البيانات. يرجى مراجعة الحقول.',
-    };
-  }
-
-  const { data } = validatedFields;
-
   try {
-    // 2. Generate the unique student ID
+    // 1. Validate the form data
+    const validatedFields = StudentSchema.safeParse(
+      Object.fromEntries(formData.entries())
+    );
+
+    if (!validatedFields.success) {
+      const fieldErrors = validatedFields.error.flatten().fieldErrors;
+      const errorCount = Object.keys(fieldErrors).length;
+      
+      return {
+        errors: fieldErrors,
+        message: `تم العثور على ${errorCount} خطأ في البيانات. يرجى تصحيح الأخطاء والمحاولة مرة أخرى.`,
+      };
+    }
+
+    const { data } = validatedFields;
+
+    // 2. Additional business logic validation
+    // Check for duplicate phone numbers
+    const existingStudentWithPhone = await prisma.student.findFirst({
+      where: {
+        OR: [
+          { phone: data.phone },
+          { parentPhone: data.phone },
+          { phone: data.parentPhone },
+          { parentPhone: data.parentPhone }
+        ]
+      }
+    });
+
+    if (existingStudentWithPhone) {
+      return {
+        errors: {
+          phone: ['رقم الهاتف مستخدم بالفعل'],
+          parentPhone: ['رقم هاتف ولي الأمر مستخدم بالفعل']
+        },
+        message: 'رقم الهاتف مستخدم بالفعل من قبل طالب آخر.',
+      };
+    }
+
+    // 3. Generate the unique student ID
     const studentId = await getNextStudentId(data.grade);
 
-    // 3. Save the new student to the database
-    await prisma.student.create({
+    // 4. Save the new student to the database
+    const newStudent = await prisma.student.create({
       data: {
         studentId: studentId,
-        name: data.name,
+        name: data.name.trim(),
         phone: data.phone,
         parentPhone: data.parentPhone,
         grade: data.grade,
@@ -70,17 +104,35 @@ export async function createStudent(prevState: State, formData: FormData) {
         paymentPref: data.paymentPref,
       },
     });
+
+    // 5. Refresh the data on the students page
+    revalidatePath('/students');
+    
+    // 6. Redirect the user back to the students list with success message
+    redirect(`/students?success=تم إضافة الطالب ${newStudent.name} بنجاح`);
+    
   } catch (error) {
     console.error('Database Error:', error);
+    
+    // Handle specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return {
+          message: 'البيانات المدخلة مكررة. يرجى التحقق من البيانات.',
+        };
+      }
+      
+      if (error.message.includes('Foreign key constraint')) {
+        return {
+          message: 'خطأ في ربط البيانات. يرجى المحاولة مرة أخرى.',
+        };
+      }
+    }
+    
     return {
-      message: 'خطأ في قاعدة البيانات: فشل في إنشاء الطالب.',
+      message: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى أو الاتصال بالدعم الفني.',
     };
   }
-
-  // 4. Refresh the data on the students page
-  revalidatePath('/students');
-  // 5. Redirect the user back to the students list
-  redirect('/students');
 }
 // Add this function to the bottom of the file
 
