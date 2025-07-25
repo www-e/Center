@@ -1,5 +1,7 @@
 // src/lib/phone-validation.ts
 
+import { z } from 'zod';
+
 export interface ValidationResult {
   isValid: boolean;
   message: string;
@@ -205,3 +207,17 @@ export function generateWhatsAppUrl(phone: string, message?: string): string {
   
   return `https://wa.me/${internationalPhone.replace('+', '')}${encodedMessage ? `?text=${encodedMessage}` : ''}`;
 }
+
+/**
+ * Zod schema for Egyptian phone number validation
+ * Used in forms and server actions
+ */
+export const EgyptianPhoneSchema = z
+  .string()
+  .min(1, 'رقم الهاتف مطلوب')
+  .refine((phone) => {
+    const validation = validateEgyptianPhone(phone);
+    return validation.isValid;
+  }, {
+    message: 'رقم الهاتف غير صحيح - يجب أن يكون 11 رقم ويبدأ بـ 01'
+  });

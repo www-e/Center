@@ -1,4 +1,6 @@
 // src/components/students-table.tsx
+'use client';
+
 import { Student } from '@prisma/client';
 import { translations } from '@/lib/constants';
 import { generateWhatsAppUrl } from '@/lib/phone-validation';

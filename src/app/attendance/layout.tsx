@@ -14,7 +14,7 @@ export default function AttendanceLayout({
 }>) {
   return (
     <div className="flex min-h-screen flex-col">
-      {children}  // This wraps the page content
+      {children}  {/* This wraps the page content */}
     </div>
   );
 }
