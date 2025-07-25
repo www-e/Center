@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useActionState } from 'react';
-import { recordPayment, PaymentState } from '@/lib/actions';
+import { recordQRPayment, getPaymentInfo, QRPaymentState } from '@/lib/payment-actions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -24,36 +23,60 @@ type PaymentModalProps = {
   onClose: () => void;
 };
 
-const initialState: PaymentState = { success: false, message: '' };
-
 export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
-  const [state, formAction] = useActionState(recordPayment, initialState);
+  const [state, setState] = useState<QRPaymentState>({ success: false, message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
+  const [isLoadingInfo, setIsLoadingInfo] = useState(false);
+  const [studentInfo, setStudentInfo] = useState<any>(null);
+  const [studentCode, setStudentCode] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // When we get a result, handle processing state
-  useEffect(() => {
-    if (state.success || (!state.success && state.message)) {
-      setIsProcessing(false);
-      if (state.success) {
-        formRef.current?.reset();
-      }
-    }
-  }, [state]);
-  
-  // Auto-focus the input when the modal opens
+  // Auto-focus the input when the modal opens and reset state
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
       setIsProcessing(false);
+      setStudentInfo(null);
+      setStudentCode('');
+      setState({ success: false, message: '' });
     }
   }, [isOpen]);
 
-  // Enhanced form submission with processing state
-  const handleSubmit = async (formData: FormData) => {
+  // Handle student code input and fetch payment info
+  const handleStudentCodeChange = async (code: string) => {
+    setStudentCode(code);
+    setStudentInfo(null);
+    
+    if (code.length >= 8) { // Minimum length for a valid student code
+      setIsLoadingInfo(true);
+      try {
+        const info = await getPaymentInfo(code);
+        if (info.success) {
+          setStudentInfo(info);
+        } else {
+          setStudentInfo({ success: false, message: info.message });
+        }
+      } catch (error) {
+        setStudentInfo({ success: false, message: 'خطأ في الحصول على بيانات الطالب' });
+      } finally {
+        setIsLoadingInfo(false);
+      }
+    }
+  };
+
+  // Handle payment processing
+  const handlePayment = async () => {
+    if (!studentCode || !studentInfo?.success) return;
+    
     setIsProcessing(true);
-    formAction(formData);
+    try {
+      const result = await recordQRPayment(studentCode);
+      setState(result);
+    } catch (error) {
+      setState({ success: false, message: 'خطأ في تسجيل الدفع' });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Success view with enhanced receipt display
@@ -160,17 +183,17 @@ export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
             <CreditCard className="h-8 w-8 text-white" />
           </div>
           <DialogTitle className="text-2xl font-bold text-foreground">تسجيل دفعة جديدة</DialogTitle>
-          <p className="text-muted-foreground">امسح كود الطالب وأدخل المبلغ المدفوع</p>
+          <p className="text-muted-foreground">امسح كود الطالب وسيتم تحديد المبلغ تلقائياً</p>
         </DialogHeader>
 
-        <form ref={formRef} action={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           {/* Scanner Section */}
           <div className="space-y-4">
             <div className="relative">
               <div className="w-full h-24 bg-gradient-to-r from-success/5 to-primary/5 rounded-xl border-2 border-dashed border-success/20 flex items-center justify-center">
                 <div className="text-center">
                   <QrCode className="h-8 w-8 mx-auto mb-1 text-success" />
-                  <p className="text-xs text-muted-foreground">منطقة مسح كود الطالب</p>
+                  <p className="text-xs text-muted-foreground">امسح كود الطالب أو أدخله يدوياً</p>
                 </div>
               </div>
             </div>
@@ -180,38 +203,66 @@ export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
               <Input
                 ref={inputRef}
                 type="text"
-                name="studentReadableId"
+                value={studentCode}
+                onChange={(e) => handleStudentCodeChange(e.target.value)}
                 className="w-full p-3 font-mono text-center focus-ring"
-                placeholder="std-g1-0001"
-                required
+                placeholder="std10001 أو std-g1-0001"
                 disabled={isProcessing}
               />
             </div>
           </div>
 
-          {/* Amount Section */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-success" />
-              المبلغ المدفوع (بالجنيه المصري)
-            </label>
-            <Input
-              type="number"
-              name="amount"
-              className="w-full p-3 text-center focus-ring"
-              placeholder="500"
-              min="1"
-              step="0.01"
-              required
-              disabled={isProcessing}
-            />
-          </div>
+          {/* Student Info Display */}
+          {isLoadingInfo && (
+            <Card className="bg-muted/50">
+              <CardContent className="p-4 text-center">
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">جاري البحث عن الطالب...</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {studentInfo && studentInfo.success && (
+            <Card className="bg-success/5 border-success/20">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{studentInfo.student.name}</p>
+                    <p className="text-sm text-muted-foreground">كود: {studentInfo.student.studentId}</p>
+                  </div>
+                </div>
+                
+                <div className="bg-primary/10 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">المبلغ المطلوب:</span>
+                    <span className="font-bold text-lg text-primary">
+                      {studentInfo.amount?.toLocaleString('ar-EG')} جنيه
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {studentInfo && !studentInfo.success && (
+            <Card className="bg-error/10 border-error/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-error" />
+                  <p className="text-error font-medium">{studentInfo.message}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Submit Button */}
           <Button 
-            type="submit" 
-            disabled={isProcessing}
-            className="w-full bg-gradient-success text-white h-12 text-base font-semibold rounded-xl hover-lift"
+            onClick={handlePayment}
+            disabled={isProcessing || !studentInfo?.success}
+            className="w-full bg-gradient-success text-white h-12 text-base font-semibold rounded-xl hover-lift disabled:opacity-50"
           >
             {isProcessing ? (
               <div className="flex items-center gap-2">
@@ -225,7 +276,7 @@ export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
               </div>
             )}
           </Button>
-        </form>
+        </div>
 
         {/* Error Display */}
         {state && !state.success && state.message && (
@@ -242,7 +293,7 @@ export function PaymentScannerModal({ isOpen, onClose }: PaymentModalProps) {
         {/* Instructions */}
         <div className="bg-muted/50 rounded-lg p-4 text-center">
           <p className="text-sm text-muted-foreground">
-            💡 <strong>نصيحة:</strong> تأكد من صحة كود الطالب والمبلغ قبل التسجيل
+            💡 <strong>نصيحة:</strong> المبلغ يتم تحديده تلقائياً حسب صف وشعبة الطالب
           </p>
         </div>
       </DialogContent>

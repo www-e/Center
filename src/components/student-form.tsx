@@ -9,10 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Phone, Users, GraduationCap, Calendar, Clock, CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, GraduationCap, CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
+import { getRealTimeValidation, handlePhoneInput } from '@/lib/phone-validation';
 
 export function StudentForm() {
-  const initialState = { message: null, errors: {} };
+  const initialState = { message: '', errors: {} };
   const [state, dispatch] = useActionState(createStudent, initialState);
 
   // Form state management
@@ -29,7 +30,6 @@ export function StudentForm() {
 
   // Real-time student ID preview
   const [studentIdPreview, setStudentIdPreview] = useState('');
-  const [studentCount, setStudentCount] = useState(0);
 
   // Form validation states
   const [fieldValidation, setFieldValidation] = useState({
@@ -41,18 +41,18 @@ export function StudentForm() {
 
   // Generate real-time student ID preview
   useEffect(() => {
-    const generatePreview = async () => {
+    const generatePreview = () => {
       if (formData.name.trim()) {
         const gradeNumber = formData.grade === Grade.FIRST ? 1 : formData.grade === Grade.SECOND ? 2 : 3;
         // Simulate counting students (in real app, this would be an API call)
-        const nextNumber = (studentCount + 1).toString().padStart(4, '0');
-        setStudentIdPreview(`std-g${gradeNumber}-${nextNumber}`);
+        const nextNumber = (1).toString().padStart(4, '0');
+        setStudentIdPreview(`std${gradeNumber}${nextNumber}`);
       } else {
         setStudentIdPreview('');
       }
     };
     generatePreview();
-  }, [formData.grade, formData.name, studentCount]);
+  }, [formData.grade, formData.name]);
 
   // Real-time validation
   useEffect(() => {
@@ -65,10 +65,11 @@ export function StudentForm() {
           return { valid: true, message: 'اسم صحيح' };
         case 'phone':
         case 'parentPhone':
-          if (value.length < 10) {
-            return { valid: false, message: 'رقم الهاتف يجب أن يكون 10 أرقام على الأقل' };
-          }
-          return { valid: true, message: 'رقم صحيح' };
+          const phoneValidation = getRealTimeValidation(value);
+          return { 
+            valid: phoneValidation.isValid, 
+            message: phoneValidation.message 
+          };
         default:
           return { valid: false, message: '' };
       }
@@ -127,12 +128,12 @@ export function StudentForm() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (formData: FormData) => {
+  const handleSubmit = (formDataObj: FormData) => {
     // Add all current form data to FormData object
     Object.entries(formData).forEach(([key, value]) => {
-      formData.set(key, value);
+      formDataObj.set(key, value);
     });
-    dispatch(formData);
+    dispatch(formDataObj);
   };
 
   const isFormValid = Object.values(fieldValidation).every(field => field.valid) && formData.groupTime;
@@ -162,7 +163,7 @@ export function StudentForm() {
                     <User className="h-12 w-12 text-white" />
                   </div>
                   <div className="font-mono text-2xl font-bold text-primary mb-2">
-                    {studentIdPreview || 'std-g1-0001'}
+                    {studentIdPreview || 'std10001'}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {formData.name || 'اسم الطالب'}
@@ -235,8 +236,12 @@ export function StudentForm() {
                           name="phone"
                           id="phone"
                           value={formData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          onChange={(e) => {
+                            const formattedValue = handlePhoneInput(e.target.value);
+                            handleInputChange('phone', formattedValue);
+                          }}
                           placeholder=" "
+                          maxLength={11}
                           className={`form-control focus-ring ${fieldValidation.phone.valid ? 'border-success' : formData.phone ? 'border-error' : ''}`}
                           required
                         />
@@ -257,8 +262,12 @@ export function StudentForm() {
                           name="parentPhone"
                           id="parentPhone"
                           value={formData.parentPhone}
-                          onChange={(e) => handleInputChange('parentPhone', e.target.value)}
+                          onChange={(e) => {
+                            const formattedValue = handlePhoneInput(e.target.value);
+                            handleInputChange('parentPhone', formattedValue);
+                          }}
                           placeholder=" "
+                          maxLength={11}
                           className={`form-control focus-ring ${fieldValidation.parentPhone.valid ? 'border-success' : formData.parentPhone ? 'border-error' : ''}`}
                           required
                         />

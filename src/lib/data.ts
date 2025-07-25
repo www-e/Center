@@ -2,6 +2,7 @@
 import 'server-only'; // Ensures this code only runs on the server
 import prisma from './prisma';
 import { GroupDay, Grade } from '@prisma/client'; // Add GroupTime and Grade to the import
+import { generateNewStudentCode } from './student-code-utils';
 
 // A function to get all students from the database
 export async function getStudents() {
@@ -18,19 +19,9 @@ export async function getStudents() {
   }
 }
 
-// A function to get the next student's readable ID
+// A function to get the next student's readable ID (updated to new format)
 export async function getNextStudentId(grade: Grade) {
-  // 1. Count how many students are already in that grade
-  const count = await prisma.student.count({
-    where: { grade: grade },
-  });
-
-  // 2. Format the number with leading zeros (e.g., 1 -> 0001, 12 -> 0012)
-  const nextNumber = (count + 1).toString().padStart(4, '0');
-
-  // 3. Create the ID string
-  const gradeNumber = grade === Grade.FIRST ? 1 : grade === Grade.SECOND ? 2 : 3;
-  return `std-g${gradeNumber}-${nextNumber}`;
+  return generateNewStudentCode(grade);
 }
 // A type for our filters for cleaner code
 export type StudentFilters = {

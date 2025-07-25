@@ -4,6 +4,8 @@
 import { z } from 'zod';
 import prisma from './prisma';
 import { getNextStudentId } from './data';
+import { findStudentByCode } from './student-code-utils';
+import { validateEgyptianPhone } from './phone-validation';
 import { Grade, Section, GroupDay, PaymentPref } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -11,13 +13,19 @@ import { Receipt } from '@prisma/client'; // Add Receipt to the import
 
 // Define the shape of our form data using Zod for validation
 const StudentSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters.'),
-  phone: z.string().min(10, 'Please enter a valid phone number.'),
-  parentPhone: z.string().min(10, 'Please enter a valid parent phone number.'),
+  name: z.string().min(3, 'الاسم يجب أن يكون 3 أحرف على الأقل'),
+  phone: z.string().refine((phone) => {
+    const validation = validateEgyptianPhone(phone);
+    return validation.isValid;
+  }, 'رقم الهاتف غير صحيح - يجب أن يبدأ بـ 01 ويكون 11 رقم'),
+  parentPhone: z.string().refine((phone) => {
+    const validation = validateEgyptianPhone(phone);
+    return validation.isValid;
+  }, 'رقم هاتف ولي الأمر غير صحيح - يجب أن يبدأ بـ 01 ويكون 11 رقم'),
   grade: z.nativeEnum(Grade),
   section: z.nativeEnum(Section),
   groupDay: z.nativeEnum(GroupDay),
-  groupTime: z.string().min(1, 'Please select a group time.'),
+  groupTime: z.string().min(1, 'يرجى اختيار ميعاد المجموعة'),
   paymentPref: z.nativeEnum(PaymentPref),
 });
 
@@ -38,7 +46,7 @@ export async function createStudent(prevState: State, formData: FormData) {
   if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Validation failed. Please check the fields.',
+      message: 'فشل في التحقق من البيانات. يرجى مراجعة الحقول.',
     };
   }
 
@@ -63,8 +71,9 @@ export async function createStudent(prevState: State, formData: FormData) {
       },
     });
   } catch (error) {
+    console.error('Database Error:', error);
     return {
-      message: 'Database Error: Failed to create student.',
+      message: 'خطأ في قاعدة البيانات: فشل في إنشاء الطالب.',
     };
   }
 
@@ -91,10 +100,8 @@ export async function markAttendance(
   }
 
   try {
-    // 1. Find the student by their human-readable ID
-    const student = await prisma.student.findUnique({
-      where: { studentId: studentReadableId },
-    });
+    // 1. Find the student by their human-readable ID (supports both old and new formats)
+    const student = await findStudentByCode(studentReadableId);
 
     if (!student) {
       return { success: false, message: 'الطالب غير موجود.' };
@@ -175,7 +182,8 @@ export async function recordPayment(
   }
   const { studentReadableId, amount } = validatedFields.data;
   
-  const student = await prisma.student.findUnique({ where: { studentId: studentReadableId }});
+  // Find student using backward compatibility function
+  const student = await findStudentByCode(studentReadableId);
   if (!student) {
     return { success: false, message: "الطالب غير موجود." };
   }

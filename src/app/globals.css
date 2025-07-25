@@ -42,9 +42,11 @@
   --color-input: #ffffff;
   --color-ring: #22c55e;
   
-  /* Card & Surface Colors */
+  /* Card & Surface Colors - Enhanced Contrast */
   --color-card: #ffffff;
-  --color-card-foreground: #0f172a;
+  --color-card-foreground: #1e293b;
+  --color-card-border: #e2e8f0;
+  --color-card-shadow: rgba(15, 23, 42, 0.08);
   --color-popover: #ffffff;
   --color-popover-foreground: #0f172a;
   
@@ -87,7 +89,9 @@
     --color-border: #334155;
     --color-input: #1e293b;
     --color-card: #1e293b;
-    --color-card-foreground: #f8fafc;
+    --color-card-foreground: #f1f5f9;
+    --color-card-border: #475569;
+    --color-card-shadow: rgba(0, 0, 0, 0.25);
     --color-popover: #1e293b;
     --color-popover-foreground: #f8fafc;
     --color-accent: #334155;
@@ -133,15 +137,68 @@ h6 { font-size: 1rem; }
 /* === Utility Classes === */
 @layer utilities {
   .shadow-card {
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -1px rgba(15, 23, 42, 0.06);
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(226, 232, 240, 0.8);
   }
   
   .shadow-card-hover {
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+  }
+  
+  .dark .shadow-card {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    background: rgba(30, 41, 59, 0.98);
+    border: 1px solid rgba(71, 85, 105, 0.8);
   }
   
   .shadow-elevated {
     box-shadow: var(--shadow-xl);
+  }
+  
+  /* Enhanced Card Styles */
+  .card-enhanced {
+    background: var(--color-card);
+    color: var(--color-card-foreground);
+    border: 1px solid var(--color-card-border);
+    box-shadow: 0 4px 6px -1px var(--color-card-shadow), 0 2px 4px -1px var(--color-card-shadow);
+  }
+  
+  .card-enhanced:hover {
+    box-shadow: 0 10px 15px -3px var(--color-card-shadow), 0 4px 6px -2px var(--color-card-shadow);
+  }
+  
+  .card-content-contrast {
+    color: var(--color-card-foreground);
+  }
+  
+  .card-muted-text {
+    color: var(--color-muted-foreground);
+  }
+  
+  /* Text Contrast Utilities */
+  .text-high-contrast {
+    color: #1e293b;
+  }
+  
+  .dark .text-high-contrast {
+    color: #f1f5f9;
+  }
+  
+  .text-medium-contrast {
+    color: #475569;
+  }
+  
+  .dark .text-medium-contrast {
+    color: #cbd5e1;
+  }
+  
+  .text-low-contrast {
+    color: #64748b;
+  }
+  
+  .dark .text-low-contrast {
+    color: #94a3b8;
   }
   
   .gradient-primary {
@@ -161,13 +218,15 @@ h6 { font-size: 1rem; }
   
   .glass-effect {
     backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.1);
   }
   
   .dark .glass-effect {
-    background: rgba(30, 41, 59, 0.8);
-    border: 1px solid rgba(51, 65, 85, 0.2);
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(71, 85, 105, 0.8);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   }
   
   .neumorphism {

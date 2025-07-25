@@ -1,6 +1,7 @@
 // src/app/page.tsx
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AdminPaymentConfigModal } from '@/components/admin-payment-config-modal';
 import Link from 'next/link';
 import { 
   Users, 
@@ -16,7 +17,8 @@ import {
   ArrowRight,
   Smartphone,
   Globe,
-  Zap
+  Zap,
+  Settings
 } from 'lucide-react';
 
 export default function Home() {
@@ -333,6 +335,21 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Floating Admin Button */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <AdminPaymentConfigModal 
+          trigger={
+            <Button 
+              size="lg" 
+              className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all bg-primary hover:bg-primary-hover"
+              title="إعدادات الدفع (المدير)"
+            >
+              <Settings className="h-6 w-6" />
+            </Button>
+          }
+        />
+      </div>
     </main>
   );
 }

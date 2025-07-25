@@ -39,7 +39,7 @@ export function PaymentControls() {
 
   function handleFilterChange(key: 'grade' | 'groupDay' | 'groupTime', value: string) {
     const params = new URLSearchParams(searchParams);
-    if (value) {
+    if (value=== "ALL" || value === "") {
       params.set(key, value);
     } else {
       params.delete(key);
@@ -157,7 +157,7 @@ export function PaymentControls() {
                     <SelectValue placeholder="اختر الصف الدراسي" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">جميع الصفوف</SelectItem>
+                    <SelectItem value="ALL">جميع الصفوف</SelectItem>
                     {Object.values(Grade).map(g => (
                       <SelectItem key={g} value={g}>{translations[g]}</SelectItem>
                     ))}
@@ -179,7 +179,7 @@ export function PaymentControls() {
                     <SelectValue placeholder="اختر أيام المجموعة" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">جميع الأيام</SelectItem>
+                    <SelectItem value="ALL">جميع الأيام</SelectItem>
                     {groupDayOptions.map(gd => (
                       <SelectItem key={gd} value={gd}>{translations[gd as GroupDay]}</SelectItem>
                     ))}
@@ -201,7 +201,7 @@ export function PaymentControls() {
                     <SelectValue placeholder="اختر ميعاد المجموعة" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">جميع المواعيد</SelectItem>
+                    <SelectItem value="ALL">جميع المواعيد</SelectItem>
                     {(groupTimeOptions as string[]).map(gt => (
                       <SelectItem key={gt} value={gt}>{gt}</SelectItem>
                     ))}
