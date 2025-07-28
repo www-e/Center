@@ -4,7 +4,7 @@
 import { Student } from '@prisma/client';
 import { translations } from '@/lib/constants';
 import { generateWhatsAppUrl } from '@/lib/phone-validation';
-import { BulkWhatsAppModal } from './bulk-whatsapp-modal';
+
 import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -150,26 +150,7 @@ export function StudentsTable({ students }: StudentsTableProps) {
         </Card>
       </div>
 
-      {/* Bulk Actions */}
-      <Card className="shadow-card">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-primary" />
-              <span className="font-medium text-foreground">إجراءات جماعية</span>
-            </div>
-            <BulkWhatsAppModal 
-              students={students}
-              trigger={
-                <Button variant="outline" className="gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  رسائل WhatsApp جماعية
-                </Button>
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Main Students Table */}
       <Card className="shadow-elevated overflow-hidden">

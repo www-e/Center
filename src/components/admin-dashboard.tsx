@@ -38,21 +38,31 @@ export function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading admin stats
     const loadStats = async () => {
       setIsLoading(true);
       try {
-        // In a real app, this would fetch from an API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setStats({
-          totalStudents: 524,
-          totalPayments: 487,
-          monthlyRevenue: 125000,
-          activeConfigs: 5,
-          systemHealth: 'good'
-        });
+        const response = await fetch('/api/admin/stats');
+        const result = await response.json();
+        
+        if (result.success) {
+          setStats({
+            totalStudents: result.data.totalStudents,
+            totalPayments: result.data.monthlyPayments,
+            monthlyRevenue: result.data.monthlyRevenue,
+            activeConfigs: result.data.paymentConfigs,
+            systemHealth: result.data.systemHealth
+          });
+        }
       } catch (error) {
         console.error('Error loading admin stats:', error);
+        // Fallback to default values
+        setStats({
+          totalStudents: 0,
+          totalPayments: 0,
+          monthlyRevenue: 0,
+          activeConfigs: 0,
+          systemHealth: 'error'
+        });
       } finally {
         setIsLoading(false);
       }

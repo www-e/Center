@@ -200,6 +200,88 @@ body {
 .glass-effect { backdrop-filter: blur(10px); }
 .shadow-elevated { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
 
+/* Container widths - Make cards wider (90% of screen) */
+.container {
+  width: 100%;
+  max-width: 95%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 92%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 90%;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 90%;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 90%;
+  }
+}
+
+/* Override any max-width constraints on main pages */
+.max-w-7xl {
+  max-width: none !important;
+}
+
+/* Select/Dropdown styling */
+[data-slot="select-trigger"] {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
+}
+
+[data-slot="select-content"] {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-slot="select-item"] {
+  color: var(--color-foreground) !important;
+}
+
+[data-slot="select-item"]:hover {
+  background: var(--color-muted) !important;
+}
+
+/* Input styling */
+input, select {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-foreground) !important;
+}
+
+input:focus, select:focus {
+  outline: none !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Dialog/Modal styling */
+[data-slot="dialog-content"] {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+}
+
+[data-slot="dialog-overlay"] {
+  background: rgba(0, 0, 0, 0.5);
+}
+
 /* Animation keyframes */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }

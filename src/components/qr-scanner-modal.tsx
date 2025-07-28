@@ -27,6 +27,8 @@ export function QrScannerModal({ isOpen, onClose, isMakeup }: QrScannerModalProp
   const [inputValue, setInputValue] = useState('');
   const [result, setResult] = useState<AttendanceState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDateSelection, setShowDateSelection] = useState(false);
+  const [pendingStudentCode, setPendingStudentCode] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus the input when the modal opens
@@ -35,6 +37,8 @@ export function QrScannerModal({ isOpen, onClose, isMakeup }: QrScannerModalProp
       setTimeout(() => inputRef.current?.focus(), 100);
       setResult(null);
       setInputValue('');
+      setShowDateSelection(false);
+      setPendingStudentCode('');
     }
   }, [isOpen]);
 
@@ -45,10 +49,32 @@ export function QrScannerModal({ isOpen, onClose, isMakeup }: QrScannerModalProp
 
     setIsProcessing(true);
     const res = await markAttendance(inputValue, isMakeup);
-    setResult(res);
+    
+    if (res.requiresDateSelection && res.availableSessions) {
+      // Show date selection modal
+      setPendingStudentCode(inputValue);
+      setShowDateSelection(true);
+      setResult(res);
+    } else {
+      setResult(res);
+    }
+    
     setInputValue('');
     setIsProcessing(false);
 
+    // Refocus for continuous scanning
+    setTimeout(() => inputRef.current?.focus(), 500);
+  }
+
+  // Handle date selection
+  async function handleDateSelection(selectedDate: string) {
+    setIsProcessing(true);
+    const res = await markAttendance(pendingStudentCode, isMakeup, selectedDate);
+    setResult(res);
+    setShowDateSelection(false);
+    setPendingStudentCode('');
+    setIsProcessing(false);
+    
     // Refocus for continuous scanning
     setTimeout(() => inputRef.current?.focus(), 500);
   }
@@ -136,31 +162,108 @@ export function QrScannerModal({ isOpen, onClose, isMakeup }: QrScannerModalProp
             </Button>
           </form>
 
+          {/* Date Selection Modal */}
+          {showDateSelection && result?.availableSessions && (
+            <Card className="shadow-card animate-fade-in bg-warning/10 border-warning/20">
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-warning/20 rounded-xl flex items-center justify-center">
+                      <AlertCircle className="h-5 w-5 text-warning" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-warning">اختر التاريخ المناسب</p>
+                      <p className="text-sm text-warning">{result.message}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">الجلسات المتاحة:</p>
+                    <div className="grid gap-2">
+                      {result.availableSessions.map((session, index) => (
+                        <Button
+                          key={index}
+                          onClick={() => handleDateSelection(session.date.toISOString().split('T')[0])}
+                          variant="outline"
+                          className={`justify-start text-right ${
+                            session.isPast 
+                              ? 'bg-muted/50 text-muted-foreground' 
+                              : 'hover:bg-primary/10 hover:border-primary/20'
+                          }`}
+                          disabled={isProcessing}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            <span>{session.label}</span>
+                            {session.isPast && (
+                              <span className="text-xs bg-muted px-2 py-1 rounded">سابق</span>
+                            )}
+                          </div>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Button
+                    onClick={() => {
+                      setShowDateSelection(false);
+                      setResult(null);
+                      setPendingStudentCode('');
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Result Display */}
-          {result && (
+          {result && !showDateSelection && (
             <Card className={`shadow-card animate-fade-in ${
               result.success 
                 ? 'bg-success/10 border-success/20' 
+                : result.requiresDateSelection
+                ? 'bg-warning/10 border-warning/20'
                 : 'bg-error/10 border-error/20'
             }`}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    result.success ? 'bg-success/20' : 'bg-error/20'
+                    result.success 
+                      ? 'bg-success/20' 
+                      : result.requiresDateSelection
+                      ? 'bg-warning/20'
+                      : 'bg-error/20'
                   }`}>
                     {result.success ? (
                       <CheckCircle className="h-5 w-5 text-success" />
                     ) : (
-                      <AlertCircle className="h-5 w-5 text-error" />
+                      <AlertCircle className={`h-5 w-5 ${result.requiresDateSelection ? 'text-warning' : 'text-error'}`} />
                     )}
                   </div>
                   <div className="flex-1">
                     {result.studentName && (
-                      <p className={`font-semibold ${result.success ? 'text-success' : 'text-error'}`}>
+                      <p className={`font-semibold ${
+                        result.success 
+                          ? 'text-success' 
+                          : result.requiresDateSelection
+                          ? 'text-warning'
+                          : 'text-error'
+                      }`}>
                         {result.studentName}
                       </p>
                     )}
-                    <p className={`text-sm ${result.success ? 'text-success' : 'text-error'}`}>
+                    <p className={`text-sm ${
+                      result.success 
+                        ? 'text-success' 
+                        : result.requiresDateSelection
+                        ? 'text-warning'
+                        : 'text-error'
+                    }`}>
                       {result.message}
                     </p>
                   </div>

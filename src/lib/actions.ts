@@ -143,65 +143,211 @@ export type AttendanceState = {
   studentName?: string;
 };
 
+// Helper function to get session dates for a month
+function getSessionDatesForMonth(year: number, month: number, groupDay: GroupDay): Date[] {
+  const dates: Date[] = [];
+  const date = new Date(Date.UTC(year, month - 1, 1));
+
+  const dayMap: Record<GroupDay, number[]> = {
+    [GroupDay.SAT_TUE]: [6, 2], // Saturday, Tuesday
+    [GroupDay.SUN_WED]: [0, 3], // Sunday, Wednesday  
+    [GroupDay.MON_THU]: [1, 4], // Monday, Thursday
+    [GroupDay.SAT_TUE_THU]: [6, 2, 4], // Saturday, Tuesday, Thursday
+  };
+
+  const targetDays = dayMap[groupDay];
+  if (!targetDays) return [];
+
+  while (date.getUTCMonth() === month - 1) {
+    if (targetDays.includes(date.getUTCDay())) {
+      dates.push(new Date(date));
+    }
+    date.setUTCDate(date.getUTCDate() + 1);
+  }
+
+  return dates;
+}
+
+// Enhanced attendance state with session options
+export type AttendanceState = {
+  success?: boolean;
+  message: string;
+  studentName?: string;
+  availableSessions?: { date: Date; label: string; isPast: boolean }[];
+  requiresDateSelection?: boolean;
+};
+
 export async function markAttendance(
   studentReadableId: string,
-  isMakeup: boolean
+  isMakeup: boolean,
+  selectedDate?: string
 ): Promise<AttendanceState> {
   if (!studentReadableId) {
     return { success: false, message: 'لم يتم استلام كود الطالب.' };
   }
 
   try {
-    // 1. Find the student by their human-readable ID (supports both old and new formats)
+    // 1. Find the student by their human-readable ID
     const student = await findStudentByCode(studentReadableId);
 
     if (!student) {
       return { success: false, message: 'الطالب غير موجود.' };
     }
 
-    // 2. Use today's date (at the start of the day to be consistent)
     const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
 
-    // 3. Check if the student is already marked present today
+    // 2. If no specific date is selected, determine the appropriate session date
+    if (!selectedDate) {
+      // For makeup sessions, we can be more flexible
+      if (isMakeup) {
+        const todayFormatted = today.toISOString().split('T')[0];
+        
+        // Check if already marked for today
+        const existingRecord = await prisma.attendanceRecord.findUnique({
+          where: {
+            studentId_date: {
+              studentId: student.id,
+              date: new Date(todayFormatted + 'T00:00:00.000Z'),
+            },
+          },
+        });
+
+        if (existingRecord) {
+          return {
+            success: false,
+            studentName: student.name,
+            message: 'تم تحضيره بالفعل اليوم.',
+          };
+        }
+
+        // Create makeup attendance for today
+        await prisma.attendanceRecord.create({
+          data: {
+            studentId: student.id,
+            date: new Date(todayFormatted + 'T00:00:00.000Z'),
+            isMakeup: true,
+          },
+        });
+
+        revalidatePath('/attendance');
+        return {
+          success: true,
+          studentName: student.name,
+          message: 'تم تسجيل الحضور التعويضي بنجاح.',
+        };
+      }
+
+      // For regular attendance, check student's schedule
+      const sessionDates = getSessionDatesForMonth(currentYear, currentMonth, student.groupDay);
+      const todayDay = today.getDay();
+      
+      // Get the student's scheduled days
+      const dayMap: Record<GroupDay, number[]> = {
+        [GroupDay.SAT_TUE]: [6, 2],
+        [GroupDay.SUN_WED]: [0, 3],
+        [GroupDay.MON_THU]: [1, 4],
+        [GroupDay.SAT_TUE_THU]: [6, 2, 4],
+      };
+      
+      const studentScheduledDays = dayMap[student.groupDay];
+      
+      // If today is not a scheduled day, show available sessions
+      if (!studentScheduledDays.includes(todayDay)) {
+        const availableSessions = sessionDates
+          .filter(date => date >= new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7)) // Show last week and future
+          .map(date => ({
+            date,
+            label: date.toLocaleDateString('ar-EG', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            }),
+            isPast: date < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+          }))
+          .slice(0, 5); // Show max 5 options
+
+        return {
+          success: false,
+          studentName: student.name,
+          message: `الطالب ${student.name} لديه جدول ${getGroupDayLabel(student.groupDay)}. اليوم ليس من أيام جدوله المحددة.`,
+          availableSessions,
+          requiresDateSelection: true,
+        };
+      }
+
+      // Today is a scheduled day, use today's date
+      selectedDate = today.toISOString().split('T')[0];
+    }
+
+    // 3. Use the selected date
+    const attendanceDate = new Date(selectedDate + 'T00:00:00.000Z');
+
+    // 4. Check if already marked for this date
     const existingRecord = await prisma.attendanceRecord.findUnique({
       where: {
         studentId_date: {
           studentId: student.id,
-          date: today,
+          date: attendanceDate,
         },
       },
     });
 
     if (existingRecord) {
+      const dateLabel = attendanceDate.toLocaleDateString('ar-EG', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
       return {
         success: false,
         studentName: student.name,
-        message: 'تم تحضيره بالفعل اليوم.',
+        message: `تم تحضيره بالفعل في ${dateLabel}.`,
       };
     }
 
-    // 4. Create the new attendance record
+    // 5. Create the attendance record
     await prisma.attendanceRecord.create({
       data: {
         studentId: student.id,
-        date: today,
+        date: attendanceDate,
         isMakeup: isMakeup,
       },
     });
-    
-    // 5. Invalidate the cache for the attendance page so the UI updates
+
     revalidatePath('/attendance');
+
+    const dateLabel = attendanceDate.toLocaleDateString('ar-EG', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
 
     return {
       success: true,
       studentName: student.name,
-      message: 'تم التحضير بنجاح.',
+      message: `تم التحضير بنجاح في ${dateLabel}.`,
     };
+
   } catch (error) {
     console.error('Attendance Error:', error);
     return { success: false, message: 'خطأ في قاعدة البيانات. فشلت عملية التحضير.' };
   }
+}
+
+// Helper function to get group day label in Arabic
+function getGroupDayLabel(groupDay: GroupDay): string {
+  const labels = {
+    [GroupDay.SAT_TUE]: 'السبت والثلاثاء',
+    [GroupDay.SUN_WED]: 'الأحد والأربعاء',
+    [GroupDay.MON_THU]: 'الاثنين والخميس',
+    [GroupDay.SAT_TUE_THU]: 'السبت والثلاثاء والخميس',
+  };
+  return labels[groupDay];
 }
 // Add this code to the bottom of the file
 

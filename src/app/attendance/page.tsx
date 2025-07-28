@@ -24,8 +24,8 @@ export default async function AttendancePage({
 }) {
   const resolvedSearchParams = await searchParams;
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-primary-light/20 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen p-4">
+      <div className="container">
         <Suspense fallback={<AttendanceLoading />}>
           <AttendanceView searchParams={resolvedSearchParams} />
         </Suspense>

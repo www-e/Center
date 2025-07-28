@@ -6,7 +6,15 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db": "tsx scripts/db-manager.ts",
+    "db:backup": "tsx scripts/db-backup.ts",
+    "db:restore": "tsx scripts/db-restore.ts",
+    "db:reset": "tsx scripts/db-reset.ts",
+    "db:seed": "tsx scripts/db-seed.ts",
+    "db:test": "tsx scripts/run-all-tests.ts",
+    "db:check": "tsx scripts/db-integrity-check.ts",
+    "db:full-reset": "tsx scripts/db-manager.ts full-reset"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
@@ -34,6 +42,7 @@
     "eslint-config-next": "15.3.5",
     "prisma": "^6.11.1",
     "tailwindcss": "^4",
+    "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5"
   }

@@ -61,56 +61,33 @@ export async function PaymentView({
   const currentMonthName = monthNames[month - 1];
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Enhanced Header Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-success/5 to-primary/5 rounded-2xl"></div>
-        <Card className="shadow-elevated glass-effect relative">
-          <CardHeader className="text-center pb-6">
-            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-success rounded-3xl flex items-center justify-center">
-              <CreditCard className="h-10 w-10 text-white" />
+    <div className="container space-y-4 animate-fade-in">
+      {/* Compact Header with Navigation & Controls */}
+      <Card className="modern-card">
+        <CardContent className="p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                <CreditCard className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold">مدفوعات {currentMonthName} {year}</h1>
+                <p className="text-xs text-muted-foreground">
+                  {totalStudents} طالب • {totalPaid} مدفوع • {totalOverdue} متأخر • {totalRevenue.toLocaleString('ar-EG')} ج.م
+                </p>
+              </div>
             </div>
-            <CardTitle className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-              مدفوعات {currentMonthName} {year}
-            </CardTitle>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              متابعة مدفوعات الشهر الحالي مع إمكانية التنقل بين الشهور وتسجيل دفعات جديدة
-            </p>
-            
-            {/* Status Badges */}
-            <div className="flex flex-wrap justify-center gap-3 mt-6">
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                <Users className="h-3 w-3 mr-1" />
-                {totalStudents} طالب
-              </Badge>
-              <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                <DollarSign className="h-3 w-3 mr-1" />
-                {totalRevenue.toLocaleString('ar-EG')} ج.م
-              </Badge>
-              {paymentRate > 0 && (
-                <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/20">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  {paymentRate.toFixed(1)}% دفع
-                </Badge>
-              )}
-              {totalOverdue > 0 && (
-                <Badge variant="outline" className="bg-error/10 text-error border-error/20">
-                  <AlertCircle className="h-3 w-3 mr-1" />
-                  {totalOverdue} متأخر
-                </Badge>
-              )}
+            <div className="flex items-center gap-2">
+              <MonthlyPaymentNavigation currentMonth={month} currentYear={year} />
             </div>
-          </CardHeader>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Monthly Navigation */}
-      <MonthlyPaymentNavigation currentMonth={month} currentYear={year} />
-
-      {/* Controls Section */}
+      {/* Controls */}
       <PaymentControls />
 
-      {/* Monthly Payment Table */}
+      {/* Payment Table */}
       <MonthlyPaymentTable students={studentsWithPayments} month={month} year={year} />
     </div>
   );

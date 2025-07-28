@@ -84,43 +84,48 @@ export function StudentControls({ totalStudents }: { totalStudents: number }) {
   const groupDayOptions = currentGrade ? Object.keys(scheduleData[currentGrade].groupDays) : [];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" dir="rtl">
-            <div>
-              <CardTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Users className="h-6 w-6 text-primary" />
-                إدارة الطلاب
-                <span className="text-sm font-normal text-muted-foreground">({totalStudents} طالب)</span>
-              </CardTitle>
-              <p className="text-muted-foreground mt-1">
-                {activeFiltersCount > 0 ? `${activeFiltersCount} فلتر نشط` : 'عرض جميع الطلاب'}
-              </p>
+    <div className="space-y-4">
+      {/* Compact Header */}
+      <Card className="modern-card">
+        <CardContent className="p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4" dir="rtl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold">إدارة الطلاب ({totalStudents})</h1>
+                <p className="text-xs text-muted-foreground">
+                  {activeFiltersCount > 0 ? `${activeFiltersCount} فلتر نشط` : 'عرض جميع الطلاب'}
+                </p>
+              </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex items-center gap-2">
               <Button
                 onClick={() => setShowFilters(!showFilters)}
                 variant="outline"
+                size="sm"
                 className="flex items-center gap-2"
               >
                 <Filter className="h-4 w-4" />
-                {showFilters ? 'إخفاء الفلاتر' : 'إظهار الفلاتر'}
+                فلاتر
               </Button>
               
-              <Button asChild className="bg-primary text-white hover:bg-primary/90">
+              <Button asChild size="sm" className="bg-primary text-white hover:bg-primary/90">
                 <Link href="/students/add" className="flex items-center gap-2">
                   <UserPlus className="h-4 w-4" />
-                  إضافة طالب جديد
+                  إضافة طالب
                 </Link>
               </Button>
             </div>
           </div>
-        </CardHeader>
-        
-        <CardContent>
+        </CardContent>
+      </Card>
+
+      {/* Search and Filters */}
+      <Card className="modern-card">
+        <CardContent className="p-4">
           {/* Search Bar */}
           <div className="relative mb-4">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -133,73 +138,75 @@ export function StudentControls({ totalStudents }: { totalStudents: number }) {
             />
           </div>
 
-          {/* Advanced Filters */}
+          {/* Compact Filters */}
           {showFilters && (
-            <div className="space-y-4 p-4 bg-muted rounded-lg">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-foreground">فلاتر متقدمة</h3>
-                {activeFiltersCount > 0 && (
-                  <Button
-                    onClick={clearAllFilters}
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    مسح الكل
-                  </Button>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Grade Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">الصف الدراسي</label>
-                  <select
-                    value={currentGrade ?? 'ALL'}
-                    onChange={(e) => handleFilterChange('grade', e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="ALL">جميع الصفوف</option>
-                    {Object.values(Grade).map(g => (
-                      <option key={g} value={g}>{translations[g]}</option>
-                    ))}
-                  </select>
+            <Card className="modern-card">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-foreground">فلاتر البحث</h3>
+                  {activeFiltersCount > 0 && (
+                    <Button
+                      onClick={clearAllFilters}
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      مسح ({activeFiltersCount})
+                    </Button>
+                  )}
                 </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Grade Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">الصف</label>
+                    <select
+                      value={currentGrade ?? 'ALL'}
+                      onChange={(e) => handleFilterChange('grade', e.target.value)}
+                      className="w-full p-2 text-sm border rounded-md focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="ALL">الكل</option>
+                      {Object.values(Grade).map(g => (
+                        <option key={g} value={g}>{translations[g]}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                {/* Section Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">الشعبة</label>
-                  <select
-                    value={currentSection ?? 'ALL'}
-                    onChange={(e) => handleFilterChange('section', e.target.value)}
-                    disabled={!currentGrade || sectionOptions.length <= 1}
-                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100"
-                  >
-                    <option value="ALL">جميع الشعب</option>
-                    {sectionOptions.map(s => (
-                      <option key={s} value={s}>{translations[s as Section]}</option>
-                    ))}
-                  </select>
-                </div>
+                  {/* Section Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">الشعبة</label>
+                    <select
+                      value={currentSection ?? 'ALL'}
+                      onChange={(e) => handleFilterChange('section', e.target.value)}
+                      disabled={!currentGrade || sectionOptions.length <= 1}
+                      className="w-full p-2 text-sm border rounded-md focus:ring-2 focus:ring-primary/20 disabled:bg-muted"
+                    >
+                      <option value="ALL">الكل</option>
+                      {sectionOptions.map(s => (
+                        <option key={s} value={s}>{translations[s as Section]}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                {/* Group Day Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">مجموعة الأيام</label>
-                  <select
-                    value={currentGroupDay ?? 'ALL'}
-                    onChange={(e) => handleFilterChange('groupDay', e.target.value)}
-                    disabled={!currentGrade}
-                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100"
-                  >
-                    <option value="ALL">جميع الأيام</option>
-                    {groupDayOptions.map(gd => (
-                      <option key={gd} value={gd}>{translations[gd as GroupDay]}</option>
-                    ))}
-                  </select>
+                  {/* Group Day Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">الأيام</label>
+                    <select
+                      value={currentGroupDay ?? 'ALL'}
+                      onChange={(e) => handleFilterChange('groupDay', e.target.value)}
+                      disabled={!currentGrade}
+                      className="w-full p-2 text-sm border rounded-md focus:ring-2 focus:ring-primary/20 disabled:bg-muted"
+                    >
+                      <option value="ALL">الكل</option>
+                      {groupDayOptions.map(gd => (
+                        <option key={gd} value={gd}>{translations[gd as GroupDay]}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Pagination Controls */}

@@ -23,8 +23,8 @@ export default async function PaymentsPage({
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-success-light/20 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen p-4">
+      <div className="container">
         <Suspense fallback={<PaymentLoading />}>
           <PaymentView searchParams={searchParams || {}} />
         </Suspense>
