@@ -126,7 +126,7 @@ function getDefaultPaymentAmount(grade: Grade, section: Section): number {
     }
   };
   
-  return defaultAmounts[grade]?.[section] || 200;
+  return (defaultAmounts[grade] as any)?.[section] || 200;
 }
 
 /**

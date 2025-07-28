@@ -27,7 +27,7 @@ export default async function AttendancePage({
     <div className="min-h-screen p-4">
       <div className="container">
         <Suspense fallback={<AttendanceLoading />}>
-          <AttendanceView searchParams={resolvedSearchParams} />
+          <AttendanceView searchParams={resolvedSearchParams || {}} />
         </Suspense>
       </div>
     </div>

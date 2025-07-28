@@ -17,7 +17,7 @@ export interface ValidationResult {
  * Formats Zod validation errors into user-friendly Arabic messages
  */
 export function formatZodErrors(error: ZodError): FormError[] {
-  return error.errors.map(err => ({
+  return error.issues.map(err => ({
     field: err.path.join('.'),
     message: err.message,
     code: err.code

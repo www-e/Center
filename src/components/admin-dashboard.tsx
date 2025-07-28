@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminPaymentConfigModal } from './admin-payment-config-modal';
+import { AutoAbsenceSettings, AutoAbsenceStats } from './auto-absence-settings';
 import { 
   Settings, 
   Users, 
@@ -196,7 +197,25 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* System Health */}
+        {/* Auto-Absence Settings */}
+        <Card className="shadow-elevated">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              إعدادات الغياب التلقائي
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground text-sm">
+              تحديد المدة الزمنية لتسجيل الغياب التلقائي للطلاب المتأخرين عن موعد الحصة.
+            </p>
+            <AutoAbsenceSettings />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* System Health */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-elevated">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -218,11 +237,28 @@ export function AdminDashboard() {
                 <span className="text-sm text-muted-foreground">الأداء</span>
                 <Badge className="bg-success/10 text-success border-success/20">ممتاز</Badge>
               </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">الغياب التلقائي</span>
+                <Badge className="bg-success/10 text-success border-success/20">نشط</Badge>
+              </div>
             </div>
             <Button variant="outline" className="w-full">
               <Database className="h-4 w-4 mr-2" />
               تفاصيل النظام
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Auto-Absence Status */}
+        <Card className="shadow-elevated">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              إحصائيات الغياب التلقائي
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <AutoAbsenceStats />
           </CardContent>
         </Card>
       </div>

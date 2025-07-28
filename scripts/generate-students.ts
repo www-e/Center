@@ -92,7 +92,7 @@ async function generateStudents() {
         for (let i = 0; i < studentsPerSection; i++) {
           const groupDays = Object.keys(gradeConfig.groupDays) as GroupDay[];
           const randomGroupDay = groupDays[Math.floor(Math.random() * groupDays.length)];
-          const availableTimes = gradeConfig.groupDays[randomGroupDay];
+          const availableTimes = gradeConfig.groupDays[randomGroupDay as keyof typeof gradeConfig.groupDays];
           const randomTime = availableTimes[Math.floor(Math.random() * availableTimes.length)];
 
           const student = {

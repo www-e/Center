@@ -13,7 +13,7 @@ export async function GET() {
     const totalStudents = await prisma.student.count();
 
     // Get payments for current month
-    const monthlyPayments = await prisma.payment.count({
+    const monthlyPayments = await prisma.paymentRecord.count({
       where: {
         month: currentMonth,
         year: currentYear,
@@ -24,10 +24,8 @@ export async function GET() {
     // Get monthly revenue
     const receipts = await prisma.receipt.findMany({
       where: {
-        createdAt: {
-          gte: new Date(currentYear, currentMonth - 1, 1),
-          lt: new Date(currentYear, currentMonth, 1),
-        },
+        month: currentMonth,
+        year: currentYear,
       },
     });
 
@@ -50,9 +48,9 @@ export async function GET() {
 
     const recentPayments = await prisma.receipt.findMany({
       take: 3,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { issuedAt: 'desc' },
       include: {
-        payment: {
+        paymentRecord: {
           include: {
             student: {
               select: { name: true },
@@ -72,8 +70,8 @@ export async function GET() {
       ...recentPayments.map(receipt => ({
         type: 'payment_received',
         description: `تم تسجيل دفعة جديدة`,
-        details: `${receipt.payment.student.name} - ${receipt.amount} ج.م`,
-        timestamp: receipt.createdAt,
+        details: `${receipt.paymentRecord.student.name} - ${receipt.amount} ج.م`,
+        timestamp: receipt.issuedAt,
       })),
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5);
 

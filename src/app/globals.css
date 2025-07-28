@@ -47,7 +47,48 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
   line-height: 1.6;
+  font-size: 16px; /* Increased base font size */
 }
+
+/* Increase font sizes globally */
+h1 { font-size: 2.5rem; } /* Increased from default */
+h2 { font-size: 2rem; }   /* Increased from default */
+h3 { font-size: 1.75rem; } /* Increased from default */
+h4 { font-size: 1.5rem; }  /* Increased from default */
+h5 { font-size: 1.25rem; } /* Increased from default */
+h6 { font-size: 1.125rem; } /* Increased from default */
+
+p, span, div { font-size: 1rem; } /* Ensure consistent base size */
+
+/* Button text sizes */
+button { font-size: 1rem; }
+.btn-sm { font-size: 0.9rem; }
+.btn-lg { font-size: 1.1rem; }
+
+/* Input and form element sizes */
+input, select, textarea {
+  font-size: 1rem;
+  padding: 0.75rem 1rem; /* Increased padding */
+}
+
+/* Table text sizes */
+table { font-size: 1rem; }
+th { font-size: 1rem; font-weight: 600; }
+td { font-size: 1rem; }
+
+/* Card text sizes */
+.card-title { font-size: 1.25rem; }
+.card-description { font-size: 1rem; }
+.card-content { font-size: 1rem; }
+
+/* Badge and small text */
+.badge { font-size: 0.9rem; }
+.text-sm { font-size: 0.95rem; } /* Slightly larger than default */
+.text-xs { font-size: 0.85rem; } /* Slightly larger than default */
+
+/* Navigation and menu items */
+nav a { font-size: 1rem; }
+.menu-item { font-size: 1rem; }
 
 /* Cards */
 .modern-card {

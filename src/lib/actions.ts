@@ -20,21 +20,13 @@ const StudentSchema = z.object({
     .regex(/^[\u0600-\u06FF\s]+$/, 'الاسم يجب أن يحتوي على أحرف عربية فقط'),
   phone: EgyptianPhoneSchema,
   parentPhone: EgyptianPhoneSchema,
-  grade: z.nativeEnum(Grade, {
-    errorMap: () => ({ message: 'يرجى اختيار الصف الدراسي' })
-  }),
-  section: z.nativeEnum(Section, {
-    errorMap: () => ({ message: 'يرجى اختيار الشعبة' })
-  }),
-  groupDay: z.nativeEnum(GroupDay, {
-    errorMap: () => ({ message: 'يرجى اختيار أيام المجموعة' })
-  }),
+  grade: z.nativeEnum(Grade),
+  section: z.nativeEnum(Section),
+  groupDay: z.nativeEnum(GroupDay),
   groupTime: z.string()
     .min(1, 'يرجى اختيار ميعاد المجموعة')
     .regex(/^\d{2}:\d{2}\s(AM|PM)$/, 'صيغة الميعاد غير صحيحة'),
-  paymentPref: z.nativeEnum(PaymentPref, {
-    errorMap: () => ({ message: 'يرجى اختيار طريقة الدفع' })
-  }),
+  paymentPref: z.nativeEnum(PaymentPref),
 });
 
 export type State = {
@@ -136,12 +128,7 @@ export async function createStudent(prevState: State, formData: FormData) {
 }
 // Add this function to the bottom of the file
 
-// A new return type for our attendance action
-export type AttendanceState = {
-  success?: boolean;
-  message: string;
-  studentName?: string;
-};
+// Removed duplicate - using the enhanced version below
 
 // Helper function to get session dates for a month
 function getSessionDatesForMonth(year: number, month: number, groupDay: GroupDay): Date[] {
@@ -302,6 +289,28 @@ export async function markAttendance(
         month: 'long', 
         day: 'numeric' 
       });
+
+      // If it was auto-marked as absent, we can override it to present
+      if (existingRecord.status === 'ABSENT_AUTO') {
+        await prisma.attendanceRecord.update({
+          where: { id: existingRecord.id },
+          data: {
+            status: 'PRESENT',
+            isMakeup: isMakeup,
+            overriddenAt: new Date(),
+            overriddenBy: 'MANUAL_SCAN',
+            notes: `Auto-absence overridden to present${isMakeup ? ' (makeup)' : ''}`
+          }
+        });
+
+        revalidatePath('/attendance');
+        return {
+          success: true,
+          studentName: student.name,
+          message: `تم تحديث الحضور بنجاح في ${dateLabel} (تم إلغاء الغياب التلقائي).`,
+        };
+      }
+
       return {
         success: false,
         studentName: student.name,
@@ -314,7 +323,9 @@ export async function markAttendance(
       data: {
         studentId: student.id,
         date: attendanceDate,
+        status: 'PRESENT',
         isMakeup: isMakeup,
+        markedBy: 'MANUAL_SCAN'
       },
     });
 

@@ -46,7 +46,7 @@ function showHelp() {
   
   for (const [cmd, info] of Object.entries(commands)) {
     console.log(`  ${cmd.padEnd(12)} - ${info.description}`);
-    if (info.usage) {
+    if ('usage' in info && info.usage) {
       console.log(`  ${' '.repeat(12)}   Usage: ${info.usage}`);
     }
   }

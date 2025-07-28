@@ -29,9 +29,9 @@ export function StudentForm() {
     name: '',
     phone: '',
     parentPhone: '',
-    grade: Grade.FIRST,
-    section: Section.NONE,
-    groupDay: GroupDay.SAT_TUE,
+    grade: Grade.FIRST as Grade,
+    section: Section.NONE as Section,
+    groupDay: GroupDay.SAT_TUE as GroupDay,
     groupTime: '',
     paymentPref: PaymentPref.PREPAID
   });

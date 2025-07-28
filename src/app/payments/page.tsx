@@ -20,13 +20,14 @@ function PaymentLoading() {
 export default async function PaymentsPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const resolvedSearchParams = await searchParams;
   return (
     <div className="min-h-screen p-4">
       <div className="container">
         <Suspense fallback={<PaymentLoading />}>
-          <PaymentView searchParams={searchParams || {}} />
+          <PaymentView searchParams={resolvedSearchParams || {}} />
         </Suspense>
       </div>
     </div>

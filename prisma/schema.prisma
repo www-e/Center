@@ -55,14 +55,27 @@ model Student {
   payments        PaymentRecord[]
 }
 
+// Enum for attendance status
+enum AttendanceStatus {
+  PRESENT
+  ABSENT_MANUAL
+  ABSENT_AUTO
+}
+
 // Records a student's attendance for a specific session
 model AttendanceRecord {
-  id        String   @id @default(cuid())
-  studentId String
-  date      DateTime // The specific date of the session, e.g., 2024-08-06
-  isMakeup  Boolean  @default(false) // To mark if it was a makeup session
+  id            String           @id @default(cuid())
+  studentId     String
+  date          DateTime         // The specific date of the session
+  status        AttendanceStatus @default(PRESENT) // Present, manually absent, or auto absent
+  isMakeup      Boolean          @default(false)   // To mark if it was a makeup session
+  markedAt      DateTime         @default(now())   // When the record was created
+  markedBy      String?          // Who marked it (for manual entries)
+  overriddenAt  DateTime?        // If an auto-absence was overridden
+  overriddenBy  String?          // Who overrode it
+  notes         String?          // Optional notes
 
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student       Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, date]) // Ensures a student can only be marked once per day
 }
