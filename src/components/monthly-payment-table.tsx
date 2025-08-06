@@ -1,18 +1,16 @@
 // src/components/monthly-payment-table.tsx
 import { Student, PaymentRecord, Receipt } from '@prisma/client';
 import { translations } from '@/lib/constants';
-import { getPaymentStatusForMonth, wasStudentEnrolled } from '@/lib/payment-history';
+import { getPaymentStatusForMonth } from '@/lib/payment-history';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  CreditCard, 
   CheckCircle, 
   XCircle, 
   Clock, 
   Users,
   DollarSign,
-  AlertCircle,
   Calendar,
   UserX
 } from 'lucide-react';
@@ -34,7 +32,6 @@ export function MonthlyPaymentTable({ students, month, year }: MonthlyPaymentTab
   ];
 
   // Calculate statistics
-  const totalStudents = students.length;
   let paidCount = 0;
   let overdueCount = 0;
   let notEnrolledCount = 0;

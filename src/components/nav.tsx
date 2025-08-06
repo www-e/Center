@@ -15,7 +15,7 @@ import {
   GraduationCap,
   Bell,
   Settings,
-  ChevronDown
+  FileText
 } from "lucide-react";
 
 export function Nav() {
@@ -61,6 +61,12 @@ export function Nav() {
       label: "المدفوعات",
       icon: CreditCard,
       active: pathname.startsWith("/payments")
+    },
+    {
+      href: "/receipts",
+      label: "الإيصالات",
+      icon: FileText,
+      active: pathname.startsWith("/receipts")
     }
   ];
 

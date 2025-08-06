@@ -2,16 +2,16 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { recordQRPayment, getPaymentInfo, QRPaymentState } from '@/lib/payment-actions';
+import { recordQRPayment, getPaymentInfo, QRPaymentState, PaymentInfoState } from '@/lib/payment-actions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Receipt, 
-  QrCode, 
-  DollarSign, 
-  CheckCircle, 
+import {
+  Receipt,
+  QrCode,
+  DollarSign,
+  CheckCircle,
   AlertCircle,
   CreditCard,
   User,
@@ -29,7 +29,7 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
   const [state, setState] = useState<QRPaymentState>({ success: false, message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingInfo, setIsLoadingInfo] = useState(false);
-  const [studentInfo, setStudentInfo] = useState<any>(null);
+  const [studentInfo, setStudentInfo] = useState<PaymentInfoState | null>(null);
   const [studentCode, setStudentCode] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -62,7 +62,7 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
   const handleStudentCodeChange = async (code: string) => {
     setStudentCode(code);
     setStudentInfo(null);
-    
+
     if (code.length >= 8) { // Minimum length for a valid student code
       setIsLoadingInfo(true);
       try {
@@ -72,7 +72,7 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
         } else {
           setStudentInfo({ success: false, message: info.message });
         }
-      } catch (error) {
+      } catch {
         setStudentInfo({ success: false, message: 'خطأ في الحصول على بيانات الطالب' });
       } finally {
         setIsLoadingInfo(false);
@@ -82,20 +82,20 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
 
   // Handle payment processing
   const handlePayment = async () => {
-    if (!studentCode || !studentInfo?.success) return;
-    
+    if (!studentCode || !studentInfo?.success || !studentInfo.student) return;
+
     // Show confirmation for non-current month payments
     if (isNonCurrentMonth && !showConfirmation) {
       setShowConfirmation(true);
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       const result = await recordQRPayment(studentCode, paymentMonth, paymentYear);
       setState(result);
       setShowConfirmation(false);
-    } catch (error) {
+    } catch {
       setState({ success: false, message: 'خطأ في تسجيل الدفع' });
     } finally {
       setIsProcessing(false);
@@ -124,7 +124,7 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
             <DialogTitle className="text-2xl font-bold text-success">تم الاستلام بنجاح</DialogTitle>
             <p className="text-muted-foreground">تم إنشاء الإيصال وحفظ العملية</p>
           </DialogHeader>
-          
+
           {/* Receipt Display */}
           <Card className="shadow-elevated bg-background">
             <CardContent className="p-6 space-y-4">
@@ -170,9 +170,9 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
                   <div>
                     <p className="text-sm text-muted-foreground">عن شهر</p>
                     <p className="font-semibold text-foreground">
-                      {new Date(state.receipt.year, state.receipt.month - 1).toLocaleString('ar-EG', { 
-                        month: 'long', 
-                        year: 'numeric' 
+                      {new Date(state.receipt.year, state.receipt.month - 1).toLocaleString('ar-EG', {
+                        month: 'long',
+                        year: 'numeric'
                       })}
                     </p>
                   </div>
@@ -188,15 +188,15 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
           </Card>
 
           <div className="flex gap-3">
-            <Button 
-              onClick={onClose} 
+            <Button
+              onClick={onClose}
               className="flex-1 btn-primary h-12 font-semibold rounded-xl"
             >
               عملية جديدة
             </Button>
-            <Button 
+            <Button
               variant="outline"
-              onClick={onClose} 
+              onClick={onClose}
               className="px-6 h-12 font-semibold rounded-xl"
             >
               إغلاق
@@ -227,11 +227,11 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">الطالب:</span>
-                    <span className="font-medium">{studentInfo?.student?.name}</span>
+                    <span className="font-medium">{studentInfo?.student?.name ?? 'غير معروف'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">المبلغ:</span>
-                    <span className="font-bold text-primary">{studentInfo?.amount?.toLocaleString('ar-EG')} ج.م</span>
+                    <span className="font-bold text-primary">{studentInfo?.amount?.toLocaleString('ar-EG') ?? '0'} ج.م</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">الشهر:</span>
@@ -248,7 +248,7 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
               <div className="text-sm">
                 <p className="font-medium text-warning mb-1">تنبيه مهم:</p>
                 <p className="text-muted-foreground">
-                  {paymentMonth < currentMonth || paymentYear < currentYear 
+                  {paymentMonth < currentMonth || paymentYear < currentYear
                     ? 'أنت تسجل دفعة لشهر سابق. تأكد من صحة التاريخ قبل المتابعة.'
                     : 'أنت تسجل دفعة لشهر مستقبلي. تأكد من صحة التاريخ قبل المتابعة.'
                   }
@@ -258,7 +258,7 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
           </div>
 
           <div className="flex gap-3">
-            <Button 
+            <Button
               onClick={handleConfirmPayment}
               disabled={isProcessing}
               className="flex-1 bg-warning text-white hover:bg-warning/90 h-12 font-semibold rounded-xl"
@@ -272,7 +272,7 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
                 'تأكيد الدفع'
               )}
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={handleCancelConfirmation}
               disabled={isProcessing}
@@ -303,7 +303,7 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
             )}
           </DialogTitle>
           <p className="text-muted-foreground">
-            {isNonCurrentMonth 
+            {isNonCurrentMonth
               ? `تسجيل دفعة لشهر ${monthNames[paymentMonth - 1]} ${paymentYear} - سيتم طلب تأكيد إضافي`
               : 'امسح كود الطالب وسيتم تحديد المبلغ تلقائياً'
             }
@@ -354,16 +354,16 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
                     <User className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{studentInfo.student.name}</p>
-                    <p className="text-sm text-muted-foreground">كود: {studentInfo.student.studentId}</p>
+                    <p className="font-semibold text-foreground">{studentInfo.student?.name}</p>
+                    <p className="text-sm text-muted-foreground">كود: {studentInfo.student?.studentId}</p>
                   </div>
                 </div>
-                
+
                 <div className="bg-primary/10 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">المبلغ المطلوب:</span>
                     <span className="font-bold text-lg text-primary">
-                      {studentInfo.amount?.toLocaleString('ar-EG')} جنيه
+                      {studentInfo.amount?.toLocaleString('ar-EG')} جنيه مصري
                     </span>
                   </div>
                 </div>
@@ -383,7 +383,7 @@ export function PaymentScannerModal({ isOpen, onClose, targetMonth, targetYear }
           )}
 
           {/* Submit Button */}
-          <Button 
+          <Button
             onClick={handlePayment}
             disabled={isProcessing || !studentInfo?.success}
             className="w-full bg-gradient-success text-white h-12 text-base font-semibold rounded-xl hover-lift disabled:opacity-50"

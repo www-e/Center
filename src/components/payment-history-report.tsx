@@ -1,8 +1,6 @@
 // src/components/payment-history-report.tsx
 import { Student, PaymentRecord, Receipt } from '@prisma/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { 
   Calendar, 
   CheckCircle, 
@@ -134,7 +132,7 @@ export function PaymentHistoryReport({ students, year }: PaymentHistoryReportPro
 
                       {/* Monthly Payment Grid */}
                       <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
-                        {history.map((entry, index) => (
+                        {history.map((entry) => (
                           <div
                             key={`${entry.month}-${entry.year}`}
                             className={`

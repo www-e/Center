@@ -1,2 +1,17 @@
+// .vscode/settings.json
 {
+
+  // Enable full-project TypeScript diagnostics
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+
+  // Ensure TS-server watches all files in your TS project
+  "typescript.tsserver.watchOptions": {
+    "watchFile": "fixedPollingInterval",
+    "watchDirectory": "recursive",
+    "fallbackPolling": "dynamicPriority"
+  },
+
+  // Validate TypeScript only (disable JS validation)
+  "typescript.validate.enable": true,
+  "javascript.validate.enable": false
 }

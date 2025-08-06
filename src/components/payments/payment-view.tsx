@@ -1,24 +1,25 @@
-// src/components/payments/payment-view.tsx
-import { getStudentsWithMonthlyPayments, StudentFilters } from "@/lib/data";
-import { MonthlyPaymentTable } from "@/components/monthly-payment-table";
-import { Grade, GroupDay } from '@prisma/client';
-import { PaymentControls } from "@/components/payment-controls";
+import { getStudentsWithMonthlyPayments, getAvailableGroupTimes, StudentFilters } from "@/lib/data";
+import { Grade, GroupDay, PaymentRecord, Receipt, Student } from '@prisma/client';
+import { FilterControls } from '@/components/filter-controls'; // Corrected import
 import { MonthlyPaymentNavigation } from "@/components/monthly-payment-navigation";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { CreditCard, Users, BarChart, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Users, DollarSign, TrendingUp, AlertCircle, Calendar } from 'lucide-react';
+import { PaymentsTable } from '@/components/payments-table'; // Standardized name
+
+// Helper type based on your Prisma Schema
+type StudentWithPayments = Student & {
+  payments: (PaymentRecord & { receipt: Receipt | null })[];
+};
 
 export async function PaymentView({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Await searchParams to handle async nature in Next.js 15
-  const params = await searchParams;
-
-  const currentDate = new Date();
-  const month = Number(params.month) || (currentDate.getMonth() + 1);
-  const year = Number(params.year) || currentDate.getFullYear();
+  const params = searchParams;
+  const year = Number(params.year) || new Date().getFullYear();
+  const month = Number(params.month) || new Date().getMonth() + 1;
 
   const filters: StudentFilters = {
     grade: params.grade as Grade | undefined,
@@ -26,69 +27,79 @@ export async function PaymentView({
     groupTime: params.groupTime as string | undefined,
   };
 
-  const studentsWithPayments = await getStudentsWithMonthlyPayments(year, month, filters);
+  const [studentsWithPayments, availableGroupTimes] = await Promise.all([
+    getStudentsWithMonthlyPayments(year, month, filters),
+    getAvailableGroupTimes(),
+  ]);
 
-  // Calculate monthly payment statistics
+  // Calculate payment statistics
   const totalStudents = studentsWithPayments.length;
-  let totalPaid = 0;
-  let totalOverdue = 0;
+  let paidStudents = 0;
   let totalRevenue = 0;
 
-  studentsWithPayments.forEach(student => {
-    const monthlyPayment = student.payments.find(p => p.month === month && p.year === year);
-    if (monthlyPayment?.isPaid) {
-      totalPaid++;
-      // Get amount from receipt if available, otherwise use default
-      const receipt = student.payments.find(p => p.receipt)?.receipt;
-      totalRevenue += receipt?.amount || 200;
-    } else {
-      // Check if student was enrolled before this month
-      const enrollmentDate = new Date(student.enrollmentDate);
-      const targetDate = new Date(year, month - 1, 1);
-      if (enrollmentDate <= targetDate) {
-        totalOverdue++;
-      }
+  studentsWithPayments.forEach((student: StudentWithPayments) => {
+    // A student is considered paid for the month if they have a payment record for that month which is paid.
+    const hasPaid = student.payments.some(p => p.isPaid && p.month === month && p.year === year);
+    if (hasPaid) {
+      paidStudents++;
+      // Sum revenue from the receipt associated with this month's payment.
+      student.payments.forEach(p => {
+        if (p.isPaid && p.month === month && p.year === year && p.receipt) {
+          totalRevenue += p.receipt.amount;
+        }
+      });
     }
   });
 
-  const paymentRate = totalStudents > 0 ? ((totalPaid / totalStudents) * 100) : 0;
-  
-  // Get month name in Arabic
-  const monthNames = [
-    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
-  ];
-  const currentMonthName = monthNames[month - 1];
+  const paidPercentage = totalStudents > 0 ? (paidStudents / totalStudents) * 100 : 0;
+  const currentMonthName = new Date(year, month - 1).toLocaleString('ar-EG', {
+    month: 'long',
+    year: 'numeric'
+  });
 
   return (
-    <div className="container space-y-4 animate-fade-in">
-      {/* Compact Header with Navigation & Controls */}
-      <Card className="modern-card">
-        <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold">مدفوعات {currentMonthName} {year}</h1>
-                <p className="text-xs text-muted-foreground">
-                  {totalStudents} طالب • {totalPaid} مدفوع • {totalOverdue} متأخر • {totalRevenue.toLocaleString('ar-EG')} ج.م
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <MonthlyPaymentNavigation currentMonth={month} currentYear={year} />
-            </div>
+    <div className="space-y-8 animate-fade-in">
+      {/* Header Section */}
+      <Card className="shadow-elevated glass-effect">
+        <CardHeader className="text-center pb-6">
+          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-success rounded-3xl flex items-center justify-center">
+            <CreditCard className="h-10 w-10 text-white" />
           </div>
-        </CardContent>
+          <CardTitle className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+            تحصيلات شهر {currentMonthName}
+          </CardTitle>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            عرض حالة الدفع للطلاب، وتصفيتهم، وتسجيل المدفوعات الجديدة باستخدام ماسح الكود.
+          </p>
+
+          {/* Stats Badges */}
+          <div className="flex flex-wrap justify-center gap-3 mt-6">
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+              <Users className="h-3 w-3 mr-1" />
+              {totalStudents} طالب مسجل
+            </Badge>
+            <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+              <BarChart className="h-3 w-3 mr-1" />
+              {paidPercentage.toFixed(1)}% مدفوع ({paidStudents} طالب)
+            </Badge>
+            <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/20">
+              <DollarSign className="h-3 w-3 mr-1" />
+              {totalRevenue.toLocaleString('ar-EG')} جنيه إجمالي
+            </Badge>
+          </div>
+        </CardHeader>
       </Card>
 
-      {/* Controls */}
-      <PaymentControls />
+      {/* Navigation & Controls */}
+      <MonthlyPaymentNavigation month={month} year={year} basePath="/payments" />
+      <FilterControls groupTimes={availableGroupTimes} />
 
-      {/* Payment Table */}
-      <MonthlyPaymentTable students={studentsWithPayments} month={month} year={year} />
+      {/* Table Section */}
+      <PaymentsTable
+        students={studentsWithPayments}
+        month={month}
+        year={year}
+      />
     </div>
   );
 }

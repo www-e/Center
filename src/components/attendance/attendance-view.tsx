@@ -1,20 +1,19 @@
 // src/components/attendance/attendance-view.tsx
-import { AttendanceControls } from "@/components/attendance-controls";
-import { getFilteredStudentsWithAttendance, StudentFilters } from "@/lib/data";
+import { getFilteredStudentsWithAttendance, getAvailableGroupTimes, StudentFilters } from "@/lib/data";
 import { getSessionDatesForMonth } from "@/lib/utils";
 import { Grade, GroupDay } from '@prisma/client';
 import { AttendanceTable } from '@/components/attendance-table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { FilterControls } from '@/components/filter-controls';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Users, TrendingUp, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export async function AttendanceView({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Await searchParams to handle async nature in Next.js 15
-  const params = await searchParams;
+  const params = searchParams;
 
   const year = Number(params.year) || new Date().getFullYear();
   const month = Number(params.month) || new Date().getMonth() + 1;
@@ -25,7 +24,10 @@ export async function AttendanceView({
     groupTime: params.groupTime as string | undefined,
   };
 
-  const studentsWithAttendance = await getFilteredStudentsWithAttendance(year, month, filters);
+  const [studentsWithAttendance, availableGroupTimes] = await Promise.all([
+    getFilteredStudentsWithAttendance(year, month, filters),
+    getAvailableGroupTimes(),
+  ]);
   
   const sessionDates = filters.groupDay
     ? getSessionDatesForMonth(year, month, filters.groupDay)
@@ -98,7 +100,7 @@ export async function AttendanceView({
       </div>
 
       {/* Controls Section */}
-      <AttendanceControls />
+      <FilterControls groupTimes={availableGroupTimes} />
 
       {/* Table Section */}
       <AttendanceTable students={studentsWithAttendance} sessionDates={sessionDates} />

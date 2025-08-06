@@ -3,7 +3,7 @@ import { Student, PaymentRecord } from '@prisma/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, DollarSign, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { CreditCard, AlertCircle, CheckCircle } from 'lucide-react';
 
 type StudentWithPayments = Student & {
   payments: PaymentRecord[];
@@ -19,31 +19,35 @@ const months = Array.from({ length: 12 }, (_, i) => i + 1);
 // Helper to calculate payment statistics
 function calculatePaymentStats(students: StudentWithPayments[], year: number) {
   const totalStudents = students.length;
-  const totalPossiblePayments = totalStudents * 12;
-  
-  let totalPaid = 0;
-  let totalOverdue = 0;
-  let totalRevenue = 0;
-  
+  let totalPaidMonths = 0;
+  let totalOverdueMonths = 0;
+  let totalRevenue = 0; // This will be based on actual receipt amounts if available
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+
   students.forEach(student => {
     student.payments.forEach(payment => {
       if (payment.isPaid) {
-        totalPaid++;
-        // Assuming average payment of 500 EGP per month
-        totalRevenue += 500;
+        totalPaidMonths++;
+        // We will calculate revenue from receipts later if needed, for now, just count paid months
       } else {
-        totalOverdue++;
+        // An unpaid month is overdue if it's in the past
+        if (year < currentYear || (year === currentYear && payment.month < currentMonth)) {
+          totalOverdueMonths++;
+        }
       }
     });
   });
-  
-  const paymentRate = totalPossiblePayments > 0 ? (totalPaid / totalPossiblePayments) * 100 : 0;
-  
+
+  // This is a simplified calculation. A more accurate one would require payment amounts.
+  // For now, we'll stick to counts.
+  const totalPossiblePayments = totalStudents * 12;
+  const paymentRate = totalPossiblePayments > 0 ? (totalPaidMonths / totalPossiblePayments) * 100 : 0;
+
   return {
     totalStudents,
-    totalPaid,
-    totalOverdue,
-    totalRevenue,
+    totalPaidMonths,
+    totalOverdueMonths,
     paymentRate
   };
 }
@@ -63,66 +67,29 @@ export function PaymentTable({ students, year }: PaymentTableProps) {
 
   return (
     <div className="space-y-6">
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="shadow-card hover-lift transition-all">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-success" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{stats.totalPaid}</p>
-                <p className="text-sm text-muted-foreground">المدفوعات المكتملة</p>
-              </div>
+      {/* Simplified Statistics Card */}
+      <Card className="shadow-card">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="space-y-1">
+              <p className="text-2xl md:text-3xl font-bold text-success">{stats.totalPaidMonths}</p>
+              <p className="text-sm text-muted-foreground">شهر مدفوع</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card hover-lift transition-all">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-error/10 rounded-xl flex items-center justify-center">
-                <AlertCircle className="h-6 w-6 text-error" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{stats.totalOverdue}</p>
-                <p className="text-sm text-muted-foreground">المدفوعات المتأخرة</p>
-              </div>
+            <div className="space-y-1">
+              <p className="text-2xl md:text-3xl font-bold text-error">{stats.totalOverdueMonths}</p>
+              <p className="text-sm text-muted-foreground">شهر متأخر</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card hover-lift transition-all">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.totalRevenue.toLocaleString('ar-EG')} ج.م
-                </p>
-                <p className="text-sm text-muted-foreground">إجمالي الإيرادات</p>
-              </div>
+            <div className="space-y-1">
+              <p className="text-2xl md:text-3xl font-bold text-primary">{stats.totalStudents}</p>
+              <p className="text-sm text-muted-foreground">طالب</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card hover-lift transition-all">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-secondary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{stats.paymentRate.toFixed(1)}%</p>
-                <p className="text-sm text-muted-foreground">معدل الدفع</p>
-              </div>
+            <div className="space-y-1">
+              <p className="text-2xl md:text-3xl font-bold text-secondary">{stats.paymentRate.toFixed(0)}%</p>
+              <p className="text-sm text-muted-foreground">نسبة الدفع</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Main Payment Table */}
       <Card className="shadow-elevated overflow-hidden">
@@ -161,16 +128,14 @@ export function PaymentTable({ students, year }: PaymentTableProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map(student => {
+                {students.map((student, index) => {
                   const studentPayments = paymentMap.get(student.id);
                   let totalPaid = 0;
-                  let totalAmount = 0;
                   
                   months.forEach(month => {
                     const record = studentPayments?.get(month);
                     if (record?.isPaid) {
                       totalPaid++;
-                      totalAmount += 500; // Assuming 500 EGP per month
                     }
                   });
                   
@@ -179,13 +144,13 @@ export function PaymentTable({ students, year }: PaymentTableProps) {
                   return (
                     <TableRow key={student.id} className="hover:bg-muted/50 transition-colors group">
                       <TableCell className="px-6 py-4 whitespace-nowrap sticky right-0 bg-background group-hover:bg-muted/50 z-10 border-l border-border/50">
-                        <div className="space-y-1">
-                          <div className="font-semibold text-foreground">{student.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {student.studentId}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {student.phone}
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm font-mono text-muted-foreground">{index + 1}.</span>
+                          <div className="space-y-1">
+                            <div className="font-semibold text-foreground">{student.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {student.studentId}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
@@ -233,9 +198,6 @@ export function PaymentTable({ students, year }: PaymentTableProps) {
                             paymentPercentage >= 60 ? 'text-warning' : 'text-error'
                           }`}>
                             {paymentPercentage.toFixed(0)}%
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {totalAmount.toLocaleString('ar-EG')} ج.م
                           </div>
                         </div>
                       </TableCell>

@@ -1,7 +1,7 @@
 // src/components/auto-absence-settings.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -35,13 +35,7 @@ export function AutoAbsenceSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // Load current settings
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
+ const loadSettings = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/admin/auto-absence/status');
@@ -57,7 +51,13 @@ export function AutoAbsenceSettings() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+  // Load current settings
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+ 
 
   const saveSettings = async () => {
     if (gracePeriod < 5 || gracePeriod > 60) {

@@ -39,7 +39,7 @@ export default function AdminPage() {
       } else {
         setError('كلمة مرور خاطئة');
       }
-    } catch (error) {
+    } catch {
       setError('خطأ في الاتصال');
     } finally {
       setIsLoading(false);

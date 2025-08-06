@@ -175,3 +175,47 @@ export async function getStudentsWithPaymentHistory(
     throw new Error('Failed to fetch students with payment history.');
   }
 }
+// Add these two functions to the end of src/lib/data.ts
+
+export async function getAvailableGroupTimes() {
+  try {
+    const distinctTimes = await prisma.student.findMany({
+      where: {
+        groupTime: {
+          not: undefined,
+        },
+      },
+      select: {
+        groupTime: true,
+      },
+      distinct: ['groupTime'],
+      orderBy: {
+        groupTime: 'asc',
+      },
+    });
+    // The result from Prisma is an array of objects, e.g., [{ groupTime: '09:00' }, ...].
+    // We'll extract just the string values.
+    return distinctTimes.map(t => t.groupTime!);
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch available group times.');
+  }
+}
+
+export async function getReceiptsForPeriod(year: number, month: number) {
+  try {
+    const receipts = await prisma.receipt.findMany({
+      where: {
+        year: year,
+        month: month,
+      },
+      orderBy: {
+        issuedAt: 'desc',
+      },
+    });
+    return receipts;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch receipts for the period.');
+  }
+}

@@ -1,7 +1,7 @@
 // src/components/notification-system.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect ,useCallback} from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -85,7 +85,12 @@ export function NotificationSystem({ notifications = [], onDismiss }: Notificati
       setLocalNotifications(urlNotifications);
     }
   }, [searchParams]);
-
+  const handleDismiss = useCallback((id: string) => {
+    if (onDismiss) {
+      onDismiss(id);
+    }
+    setLocalNotifications(prev => prev.filter(n => n.id !== id));
+  }, [onDismiss]);
   // Auto-dismiss notifications
   useEffect(() => {
     const allNotifications = [...notifications, ...localNotifications];
@@ -99,14 +104,9 @@ export function NotificationSystem({ notifications = [], onDismiss }: Notificati
         return () => clearTimeout(timer);
       }
     });
-  }, [notifications, localNotifications]);
+  }, [notifications, localNotifications, handleDismiss]);
 
-  const handleDismiss = (id: string) => {
-    if (onDismiss) {
-      onDismiss(id);
-    }
-    setLocalNotifications(prev => prev.filter(n => n.id !== id));
-  };
+
 
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {

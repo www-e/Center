@@ -23,6 +23,19 @@ export type QRPaymentState = {
   studentName?: string;
   amount?: number;
 };
+// Add this type definition immediately after it:
+export type PaymentInfoState = {
+  success: boolean;
+  message: string;
+  student?: {
+    id: string;
+    name: string;
+    studentId: string;
+    grade: string;
+    section: string;
+  };
+  amount?: number;
+};
 
 /**
  * Records payment using QR code with automatic amount calculation

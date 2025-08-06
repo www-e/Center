@@ -1,9 +1,9 @@
 // src/components/attendance-table.tsx
-import { Student, AttendanceRecord } from '@prisma/client';
+import { Student, AttendanceRecord, AttendanceStatus } from '@prisma/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, CheckCircle, Clock, Users, TrendingUp } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Users, TrendingUp, XCircle, AlertCircle } from 'lucide-react';
 
 type StudentWithAttendance = Student & {
   attendance: AttendanceRecord[];
@@ -23,27 +23,36 @@ function formatDateHeader(date: Date) {
 function calculateAttendanceStats(students: StudentWithAttendance[], sessionDates: Date[]) {
   const totalSessions = sessionDates.length;
   const totalStudents = students.length;
-  const totalPossibleAttendance = totalSessions * totalStudents;
   
-  let totalAttended = 0;
+  let totalPresent = 0;
   let totalMakeup = 0;
-  
+  let totalAbsent = 0;
+
   students.forEach(student => {
     student.attendance.forEach(record => {
-      totalAttended++;
-      if (record.isMakeup) totalMakeup++;
+      if (record.status === AttendanceStatus.PRESENT) {
+        totalPresent++;
+        if (record.isMakeup) {
+          totalMakeup++;
+        }
+      } else if (record.status === AttendanceStatus.ABSENT_AUTO || record.status === AttendanceStatus.ABSENT_MANUAL) {
+        totalAbsent++;
+      }
     });
   });
   
-  const attendanceRate = totalPossibleAttendance > 0 ? (totalAttended / totalPossibleAttendance) * 100 : 0;
+  // Calculate attendance rate based on actual records, not possible attendance
+  const totalRecords = totalPresent + totalAbsent;
+  const attendanceRate = totalRecords > 0 ? (totalPresent / totalRecords) * 100 : 0;
   
   return {
     totalSessions,
     totalStudents,
-    totalAttended,
+    totalAttended: totalPresent,
     totalMakeup,
+    totalAbsent,
     attendanceRate,
-    presentToday: totalAttended - totalMakeup
+    presentToday: totalPresent - totalMakeup // This is "Regular" attendance, not necessarily "Today"
   };
 }
 
@@ -57,7 +66,7 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
             <Calendar className="h-8 w-8 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold text-foreground">اختر المجموعة لعرض الحضور</CardTitle>
-          <p className="text-muted-foreground mt-2">الرجاء تحديد "الصف الدراسي" و "مجموعة الأيام" من الفلاتر أعلاه لعرض جدول الحضور التفصيلي</p>
+          <p className="text-muted-foreground mt-2">الرجاء تحديد &quot;الصف الدراسي&quot; و &quot;مجموعة الأيام&quot; من الفلاتر أعلاه لعرض جدول الحضور التفصيلي</p>
         </CardHeader>
       </Card>
     );
@@ -79,7 +88,7 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
   return (
     <div className="space-y-6">
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="shadow-card hover-lift transition-all">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
@@ -102,7 +111,7 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{stats.presentToday}</p>
-                <p className="text-sm text-muted-foreground">حضور اليوم</p>
+                <p className="text-sm text-muted-foreground">حضور أساسي</p>
               </div>
             </div>
           </CardContent>
@@ -117,6 +126,20 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
               <div>
                 <p className="text-2xl font-bold text-foreground">{stats.totalMakeup}</p>
                 <p className="text-sm text-muted-foreground">حضور تعويضي</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-card hover-lift transition-all">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-error/10 rounded-xl flex items-center justify-center">
+                <AlertCircle className="h-6 w-6 text-error" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{stats.totalAbsent}</p>
+                <p className="text-sm text-muted-foreground">إجمالي الغياب</p>
               </div>
             </div>
           </CardContent>
@@ -172,59 +195,91 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map(student => {
+                {students.map((student, index) => {
                   const studentRecords = attendanceMap.get(student.id);
-                  let totalAttendance = 0;
+                  let totalPresent = 0;
                   let totalMakeup = 0;
                   
                   sessionDates.forEach(date => {
                     const record = studentRecords?.get(date.toISOString().split('T')[0]);
-                    if (record) {
-                      totalAttendance++;
+                    if (record && record.status === AttendanceStatus.PRESENT) {
+                      totalPresent++;
                       if (record.isMakeup) totalMakeup++;
                     }
                   });
                   
-                  const attendancePercentage = sessionDates.length > 0 ? (totalAttendance / sessionDates.length) * 100 : 0;
+                  const attendancePercentage = sessionDates.length > 0 ? (totalPresent / sessionDates.length) * 100 : 0;
                   
                   return (
                     <TableRow key={student.id} className="hover:bg-muted/50 transition-colors group">
                       <TableCell className="px-6 py-4 whitespace-nowrap sticky right-0 bg-background group-hover:bg-muted/50 z-10 border-l border-border/50">
-                        <div className="space-y-1">
-                          <div className="font-semibold text-foreground">{student.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {student.studentId}
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm font-mono text-muted-foreground">{index + 1}.</span>
+                          <div className="space-y-1">
+                            <div className="font-semibold text-foreground">{student.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {student.studentId}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
                       {sessionDates.map(date => {
                         const record = studentRecords?.get(date.toISOString().split('T')[0]);
+                        let cellContent;
+
+                        if (record) {
+                          switch (record.status) {
+                            case AttendanceStatus.PRESENT:
+                              if (record.isMakeup) {
+                                cellContent = (
+                                  <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 hover:bg-warning/20">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    تعويضي
+                                  </Badge>
+                                );
+                              } else {
+                                cellContent = (
+                                  <Badge variant="outline" className="bg-success/10 text-success border-success/20 hover:bg-success/20">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    حاضر
+                                  </Badge>
+                                );
+                              }
+                              break;
+                            case AttendanceStatus.ABSENT_AUTO:
+                            case AttendanceStatus.ABSENT_MANUAL:
+                              cellContent = (
+                                <Badge variant="outline" className="bg-error/10 text-error border-error/20 hover:bg-error/20">
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  غائب
+                                </Badge>
+                              );
+                              break;
+                            default:
+                              cellContent = (
+                                <div className="w-8 h-8 mx-auto bg-neutral/20 rounded-full flex items-center justify-center">
+                                  <span className="text-neutral text-xs">-</span>
+                                </div>
+                              );
+                          }
+                        } else {
+                          cellContent = (
+                            <div className="w-8 h-8 mx-auto bg-neutral/20 rounded-full flex items-center justify-center">
+                              <span className="text-neutral text-xs">-</span>
+                            </div>
+                          );
+                        }
+                        
                         return (
                           <TableCell key={date.toISOString()} className="px-4 py-4 text-center">
-                            {record ? (
-                              record.isMakeup ? (
-                                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 hover:bg-warning/20">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  تعويضي
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-success/10 text-success border-success/20 hover:bg-success/20">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  حاضر
-                                </Badge>
-                              )
-                            ) : (
-                              <div className="w-8 h-8 mx-auto bg-neutral/20 rounded-full flex items-center justify-center">
-                                <span className="text-neutral text-xs">-</span>
-                              </div>
-                            )}
+                            {cellContent}
                           </TableCell>
                         );
                       })}
                       <TableCell className="px-4 py-4 text-center">
                         <div className="space-y-1">
                           <div className="font-semibold text-foreground">
-                            {totalAttendance}/{sessionDates.length}
+                            {totalPresent}/{sessionDates.length}
                           </div>
                           <div className={`text-xs font-medium ${
                             attendancePercentage >= 80 ? 'text-success' :

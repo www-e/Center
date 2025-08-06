@@ -95,7 +95,7 @@ export function AdminPaymentConfigModal({ trigger }: AdminPaymentConfigModalProp
       } else {
         setAuthError('كلمة مرور خاطئة');
       }
-    } catch (error) {
+    } catch {
       setAuthError('خطأ في الاتصال');
     }
   };
@@ -123,7 +123,7 @@ export function AdminPaymentConfigModal({ trigger }: AdminPaymentConfigModalProp
       } else {
         setSaveMessage('فشل في حفظ الإعدادات');
       }
-    } catch (error) {
+    } catch {
       setSaveMessage('خطأ في الاتصال');
     } finally {
       setIsSaving(false);

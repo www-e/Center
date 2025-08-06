@@ -1,4 +1,3 @@
-// src/components/monthly-payment-navigation.tsx
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -8,11 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar, AlertTriangle } from 'lucide-react';
 
 interface MonthlyPaymentNavigationProps {
-  currentMonth: number;
-  currentYear: number;
+  month: number;
+  year: number;
+  basePath: string;
 }
 
-export function MonthlyPaymentNavigation({ currentMonth, currentYear }: MonthlyPaymentNavigationProps) {
+export function MonthlyPaymentNavigation({ month, year, basePath }: MonthlyPaymentNavigationProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -24,32 +24,32 @@ export function MonthlyPaymentNavigation({ currentMonth, currentYear }: MonthlyP
   const currentDate = new Date();
   const actualCurrentMonth = currentDate.getMonth() + 1;
   const actualCurrentYear = currentDate.getFullYear();
-  
-  const isCurrentMonth = currentMonth === actualCurrentMonth && currentYear === actualCurrentYear;
-  const isPastMonth = currentYear < actualCurrentYear || 
-    (currentYear === actualCurrentYear && currentMonth < actualCurrentMonth);
-  const isFutureMonth = currentYear > actualCurrentYear || 
-    (currentYear === actualCurrentYear && currentMonth > actualCurrentMonth);
 
-  const navigateToMonth = (month: number, year: number) => {
+  const isCurrentMonth = month === actualCurrentMonth && year === actualCurrentYear;
+  const isPastMonth = year < actualCurrentYear ||
+    (year === actualCurrentYear && month < actualCurrentMonth);
+  const isFutureMonth = year > actualCurrentYear ||
+    (year === actualCurrentYear && month > actualCurrentMonth);
+
+  const navigateToMonth = (newMonth: number, newYear: number) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('month', month.toString());
-    params.set('year', year.toString());
-    router.push(`/payments?${params.toString()}`);
+    params.set('month', newMonth.toString());
+    params.set('year', newYear.toString());
+    router.push(`${basePath}?${params.toString()}`);
   };
 
   const getPreviousMonth = () => {
-    if (currentMonth === 1) {
-      return { month: 12, year: currentYear - 1 };
+    if (month === 1) {
+      return { month: 12, year: year - 1 };
     }
-    return { month: currentMonth - 1, year: currentYear };
+    return { month: month - 1, year: year };
   };
 
   const getNextMonth = () => {
-    if (currentMonth === 12) {
-      return { month: 1, year: currentYear + 1 };
+    if (month === 12) {
+      return { month: 1, year: year + 1 };
     }
-    return { month: currentMonth + 1, year: currentYear };
+    return { month: month + 1, year: year };
   };
 
   const previousMonth = getPreviousMonth();
@@ -75,7 +75,7 @@ export function MonthlyPaymentNavigation({ currentMonth, currentYear }: MonthlyP
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="h-5 w-5 text-primary" />
                 <h3 className="text-xl font-bold text-foreground">
-                  {monthNames[currentMonth - 1]} {currentYear}
+                  {monthNames[month - 1]} {year}
                 </h3>
               </div>
               
