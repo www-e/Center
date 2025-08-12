@@ -5,6 +5,7 @@ import { getPaymentStatusForMonth } from '@/lib/payment-history';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PaymentQRButton } from '@/components/payment-qr-button';
 import { 
   CheckCircle, 
   XCircle, 
@@ -187,13 +188,18 @@ export function MonthlyPaymentTable({ students, month, year }: MonthlyPaymentTab
       {/* Main Payment Table */}
       <Card className="shadow-elevated overflow-hidden">
         <CardHeader className="border-b border-border/50">
-          <CardTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
-            <Calendar className="h-5 w-5 text-primary" />
-            مدفوعات {monthNames[month - 1]} {year}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            عرض حالة الدفع لجميع الطلاب في الشهر المحدد
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
+                <Calendar className="h-5 w-5 text-primary" />
+                مدفوعات {monthNames[month - 1]} {year}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                عرض حالة الدفع لجميع الطلاب في الشهر المحدد
+              </p>
+            </div>
+            <PaymentQRButton month={month} year={year} />
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

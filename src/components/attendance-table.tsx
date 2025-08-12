@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, CheckCircle, Clock, Users, TrendingUp, XCircle, AlertCircle } from 'lucide-react';
+import { AttendanceQRButton, MakeupQRButton } from '@/components/attendance-qr-buttons';
 
 type StudentWithAttendance = Student & {
   attendance: AttendanceRecord[];
@@ -163,13 +164,21 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
       {/* Main Attendance Table */}
       <Card className="shadow-elevated overflow-hidden">
         <CardHeader className="border-b border-border/50">
-          <CardTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
-            <Calendar className="h-5 w-5 text-primary" />
-            جدول الحضور التفصيلي
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {sessionDates.length} جلسة • {students.length} طالب
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
+                <Calendar className="h-5 w-5 text-primary" />
+                جدول الحضور التفصيلي
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {sessionDates.length} جلسة • {students.length} طالب
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <AttendanceQRButton />
+              <MakeupQRButton />
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

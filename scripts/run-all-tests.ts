@@ -65,6 +65,14 @@ async function runAllTests() {
       {
         name: 'Comprehensive Payment Scenarios',
         command: 'npx tsx scripts/test-payment-scenarios-comprehensive.ts'
+      },
+      {
+        name: 'Auto-Absence System Testing',
+        command: 'npx tsx scripts/test-auto-absence-comprehensive.ts'
+      },
+      {
+        name: 'Complete Absence System Testing',
+        command: 'npx tsx scripts/test-absence-system-complete.ts'
       }
     ];
     
