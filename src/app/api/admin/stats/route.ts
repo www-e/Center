@@ -1,8 +1,9 @@
 // src/app/api/admin/stats/route.ts
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-
+import { triggerAutoAbsenceCheck } from '@/lib/auto-absence';
 export async function GET() {
+  triggerAutoAbsenceCheck();
   try {
     // Get current month/year
     const now = new Date();

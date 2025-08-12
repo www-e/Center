@@ -1,17 +1,63 @@
 // src/lib/auto-absence.ts
 import prisma from './prisma';
 import { AttendanceStatus, GroupDay } from '@prisma/client';
+import fs from 'fs/promises';
+import path from 'path';
 
-// Helper function to get session dates for a month (same as utils.ts)
+// --- NEW RESILIENT SCHEDULER LOGIC ---
+
+const LOCK_FILE_PATH = path.join(process.cwd(), '.scheduler.lock.json');
+const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface LockFile {
+  lastRun: string;
+}
+
+/**
+ * Checks if the auto-absence process should run based on the last run time.
+ * This is the core of our resilient, offline scheduler.
+ * This function will be called from a frequently used API route.
+ */
+export async function triggerAutoAbsenceCheck(): Promise<void> {
+  try {
+    let lastRun = 0;
+    try {
+      const lockFileContent = await fs.readFile(LOCK_FILE_PATH, 'utf-8');
+      const lockFileData: LockFile = JSON.parse(lockFileContent);
+      lastRun = new Date(lockFileData.lastRun).getTime();
+    } catch (error) {
+      // If the file doesn't exist or is invalid, we'll run the process.
+      console.log('Scheduler lock file not found. Assuming first run.');
+    }
+
+    const now = Date.now();
+    if (now - lastRun > CHECK_INTERVAL_MS) {
+      console.log('SCHEDULER: Interval passed. Running auto-absence process...');
+      const result = await processAutoAbsences();
+      
+      // After a successful run, update the lock file.
+      const newLockFileContent: LockFile = { lastRun: new Date(now).toISOString() };
+      await fs.writeFile(LOCK_FILE_PATH, JSON.stringify(newLockFileContent, null, 2));
+      
+      console.log(`SCHEDULER: Process finished. Marked ${result.marked} students. Next check in 5 minutes.`);
+    }
+  } catch (error) {
+    console.error('SCHEDULER: Failed to trigger auto-absence check.', error);
+  }
+}
+
+// --- CORE AUTO-ABSENCE LOGIC (Unchanged, but kept) ---
+
+// Helper function to get session dates for a month
 function getSessionDatesForMonth(year: number, month: number, groupDay: GroupDay): Date[] {
   const dates: Date[] = [];
   const date = new Date(Date.UTC(year, month - 1, 1));
 
   const dayMap: Record<GroupDay, number[]> = {
-    [GroupDay.SAT_TUE]: [6, 2], // Saturday, Tuesday
-    [GroupDay.SUN_WED]: [0, 3], // Sunday, Wednesday  
-    [GroupDay.MON_THU]: [1, 4], // Monday, Thursday
-    [GroupDay.SAT_TUE_THU]: [6, 2, 4], // Saturday, Tuesday, Thursday
+    [GroupDay.SAT_TUE]: [6, 2],
+    [GroupDay.SUN_WED]: [0, 3],
+    [GroupDay.MON_THU]: [1, 4],
+    [GroupDay.SAT_TUE_THU]: [6, 2, 4],
   };
 
   const targetDays = dayMap[groupDay];
@@ -55,15 +101,14 @@ async function getGracePeriod(): Promise<number> {
       return isNaN(gracePeriod) ? 15 : Math.max(5, Math.min(60, gracePeriod));
     }
     
-    // Default to 15 minutes if not set
-    return 15;
+    return 15; // Default to 15 minutes if not set
   } catch (error) {
     console.error('Error getting grace period:', error);
     return 15;
   }
 }
 
-// Set the auto-absence grace period
+// Set the auto-absence grace period (Exported for use in the API)
 export async function setGracePeriod(minutes: number): Promise<boolean> {
   try {
     const validMinutes = Math.max(5, Math.min(60, minutes));
@@ -87,7 +132,7 @@ export async function setGracePeriod(minutes: number): Promise<boolean> {
   }
 }
 
-// Main auto-absence processing function
+// Main auto-absence processing function (Exported for use by the scheduler and API)
 export async function processAutoAbsences(): Promise<{
   processed: number;
   marked: number;
@@ -105,9 +150,8 @@ export async function processAutoAbsences(): Promise<{
     const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
     const gracePeriod = await getGracePeriod();
 
-    console.log(`🔄 Processing auto-absences at ${now.toISOString()}, grace period: ${gracePeriod} minutes`);
+    console.log(`AUTO-ABSENCE: Processing at ${now.toISOString()}, grace period: ${gracePeriod} minutes`);
 
-    // Get all students
     const students = await prisma.student.findMany({
       include: {
         attendance: {
@@ -124,8 +168,6 @@ export async function processAutoAbsences(): Promise<{
     for (const student of students) {
       try {
         results.processed++;
-
-        // Check if student has a session today
         const todayDay = today.getDay();
         const dayMap: Record<GroupDay, number[]> = {
           [GroupDay.SAT_TUE]: [6, 2],
@@ -133,58 +175,43 @@ export async function processAutoAbsences(): Promise<{
           [GroupDay.MON_THU]: [1, 4],
           [GroupDay.SAT_TUE_THU]: [6, 2, 4],
         };
-
         const studentScheduledDays = dayMap[student.groupDay];
-        if (!studentScheduledDays.includes(todayDay)) {
-          continue; // No session today
+
+        if (!studentScheduledDays.includes(todayDay) || student.enrollmentDate > today) {
+          continue;
         }
 
-        // Check if student is enrolled for today
-        if (student.enrollmentDate > today) {
-          continue; // Not enrolled yet
-        }
-
-        // Check if already has an attendance record for today
         const existingRecord = student.attendance.find(record => 
           record.date.getTime() === today.getTime()
         );
 
         if (existingRecord) {
-          continue; // Already marked (present or absent)
+          continue;
         }
 
-        // Parse student's session time
         const sessionTimeMinutes = parseTimeToMinutes(student.groupTime);
         const graceEndTime = sessionTimeMinutes + gracePeriod;
 
-        // Check if grace period has passed
         if (currentTimeMinutes >= graceEndTime) {
-          // Mark as auto-absent
           await prisma.attendanceRecord.create({
             data: {
               studentId: student.id,
               date: today,
               status: AttendanceStatus.ABSENT_AUTO,
-              isMakeup: false,
-              markedAt: now,
               markedBy: 'SYSTEM',
               notes: `Auto-marked absent after ${gracePeriod} minute grace period`
             }
           });
-
           results.marked++;
-          console.log(`📝 Auto-marked ${student.name} (${student.studentId}) as absent`);
+          console.log(`AUTO-ABSENCE: Marked ${student.name} as absent.`);
         }
-
       } catch (error) {
         const errorMsg = `Error processing student ${student.studentId}: ${error}`;
         results.errors.push(errorMsg);
         console.error(errorMsg);
       }
     }
-
-    console.log(`✅ Auto-absence processing complete: ${results.marked} students marked absent out of ${results.processed} processed`);
-
+    console.log(`AUTO-ABSENCE: Complete. ${results.marked} marked / ${results.processed} processed.`);
   } catch (error) {
     const errorMsg = `Fatal error in auto-absence processing: ${error}`;
     results.errors.push(errorMsg);
@@ -194,46 +221,7 @@ export async function processAutoAbsences(): Promise<{
   return results;
 }
 
-// Background job scheduler
-let autoAbsenceInterval: NodeJS.Timeout | null = null;
-
-export function startAutoAbsenceScheduler(): void {
-  if (autoAbsenceInterval) {
-    console.log('⚠️  Auto-absence scheduler already running');
-    return;
-  }
-
-  console.log('🚀 Starting auto-absence scheduler (runs every 5 minutes)');
-  
-  // Run immediately on start
-  processAutoAbsences();
-  
-  // Then run every 5 minutes
-  autoAbsenceInterval = setInterval(() => {
-    processAutoAbsences();
-  }, 5 * 60 * 1000); // 5 minutes
-}
-
-export function stopAutoAbsenceScheduler(): void {
-  if (autoAbsenceInterval) {
-    clearInterval(autoAbsenceInterval);
-    autoAbsenceInterval = null;
-    console.log('🛑 Auto-absence scheduler stopped');
-  }
-}
-
-// Get scheduler status
-export function getSchedulerStatus(): {
-  isRunning: boolean;
-  nextRun?: Date;
-} {
-  return {
-    isRunning: autoAbsenceInterval !== null,
-    nextRun: autoAbsenceInterval ? new Date(Date.now() + 5 * 60 * 1000) : undefined
-  };
-}
-
-// Override an auto-absence to present
+// Override an auto-absence to present (Exported for potential future use)
 export async function overrideAutoAbsence(
   studentId: string,
   date: Date,

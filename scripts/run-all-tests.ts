@@ -126,8 +126,8 @@ async function checkDatabaseIntegrity(): Promise<TestResult> {
     // Check for duplicate student codes
     const duplicateCodes = await prisma.$queryRaw<{count: number}[]>`
       SELECT COUNT(*) as count FROM (
-        SELECT studentCode FROM Student 
-        GROUP BY studentCode 
+        SELECT studentId FROM Student 
+        GROUP BY studentId 
         HAVING COUNT(*) > 1
       )
     `;
@@ -137,7 +137,7 @@ async function checkDatabaseIntegrity(): Promise<TestResult> {
     
     checks.push(`Orphaned attendance records: ${orphanedAttendance}`);
     checks.push(`Orphaned payment records: ${orphanedPayments}`);
-    checks.push(`Duplicate student codes: ${duplicateCodes[0]?.count || 0}`);
+    checks.push(`Duplicate student IDs: ${duplicateCodes[0]?.count || 0}`);
     checks.push(`Payment configurations: ${paymentConfigs}`);
     
     const hasIssues = orphanedAttendance > 0 || orphanedPayments > 0 || (duplicateCodes[0]?.count || 0) > 0;

@@ -441,3 +441,17 @@ export async function recordPayment(
     return { success: false, message: "خطأ في قاعدة البيانات. فشلت عملية الدفع." };
   }
 }
+// Add this new server action to the end of src/lib/actions.ts
+
+export async function getNextStudentIdAction(grade: Grade): Promise<{ studentId?: string; error?: string }> {
+  if (!Object.values(Grade).includes(grade)) {
+    return { error: 'Invalid grade provided.' };
+  }
+  try {
+    const studentId = await getNextStudentId(grade);
+    return { studentId };
+  } catch (error) {
+    console.error("Failed to get next student ID:", error);
+    return { error: 'Could not retrieve the next student ID from the database.' };
+  }
+}

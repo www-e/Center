@@ -3,7 +3,7 @@
 
 import { useActionState, useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { createStudent } from '@/lib/actions';
+import { createStudent, getNextStudentIdAction } from '@/lib/actions';
 import { scheduleData, translations } from '@/lib/constants';
 import { Grade, Section, GroupDay, PaymentPref } from '@prisma/client';
 import { Input } from '@/components/ui/input';
@@ -79,20 +79,22 @@ export function StudentForm() {
     groupTime: { valid: false, message: '' }
   });
 
-  // Generate real-time student ID preview
   useEffect(() => {
-    const generatePreview = () => {
-      if (formData.name.trim()) {
-        const gradeNumber = formData.grade === Grade.FIRST ? 1 : formData.grade === Grade.SECOND ? 2 : 3;
-        // Simulate counting students (in real app, this would be an API call)
-        const nextNumber = (1).toString().padStart(4, '0');
-        setStudentIdPreview(`std${gradeNumber}${nextNumber}`);
-      } else {
-        setStudentIdPreview('');
-      }
-    };
-    generatePreview();
-  }, [formData.grade, formData.name]);
+    // Only generate a preview if it's not edit mode and a grade is selected.
+    if (!isEditMode && formData.grade) {
+      const fetchNextId = async () => {
+        // We set a placeholder while fetching
+        setStudentIdPreview('...جاري الإنشاء');
+        const result = await getNextStudentIdAction(formData.grade);
+        if (result.studentId) {
+          setStudentIdPreview(result.studentId);
+        } else {
+          setStudentIdPreview('خطأ');
+        }
+      };
+      fetchNextId();
+    }
+  }, [formData.grade, isEditMode]);
 
   // Real-time validation
   useEffect(() => {

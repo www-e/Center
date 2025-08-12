@@ -158,7 +158,7 @@ export async function getStudentsWithPaymentHistory(
             year: year,
           },
           include: {
-            receipt: true,
+            receipt: true, // This line is crucial
           },
           orderBy: {
             month: 'asc',

@@ -5,7 +5,7 @@ import { MonthlyPaymentNavigation } from "@/components/monthly-payment-navigatio
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { CreditCard, Users, BarChart, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { PaymentsTable } from '@/components/payments-table'; // Standardized name
+import { MonthlyPaymentTable } from '@/components/monthly-payment-table';
 
 // Helper type based on your Prisma Schema
 type StudentWithPayments = Student & {
@@ -94,8 +94,7 @@ export async function PaymentView({
       <MonthlyPaymentNavigation month={month} year={year} basePath="/payments" />
       <FilterControls groupTimes={availableGroupTimes} />
 
-      {/* Table Section */}
-      <PaymentsTable
+      <MonthlyPaymentTable
         students={studentsWithPayments}
         month={month}
         year={year}

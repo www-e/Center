@@ -1,6 +1,6 @@
 // src/lib/payment-history.ts
 import 'server-only';
-import { Student, PaymentRecord } from '@prisma/client';
+import { Student, PaymentRecord , Receipt } from '@prisma/client';
 
 export type PaymentStatus = 'paid' | 'overdue' | 'not_enrolled' | 'future';
 
@@ -64,7 +64,7 @@ export function getPaymentStatusForMonth(
  */
 export function generatePaymentHistory(
   student: Student,
-  payments: PaymentRecord[],
+  payments: (PaymentRecord & { receipt?: Receipt | null })[],
   startMonth: number,
   startYear: number,
   endMonth: number,
@@ -88,7 +88,7 @@ export function generatePaymentHistory(
       year,
       status,
       paidAt: paymentRecord?.paidAt || undefined,
-      amount: paymentRecord?.isPaid ? 200 : undefined, // Default amount, should be from receipt
+      amount: paymentRecord?.receipt?.amount, // Default amount, should be from receipt
       isCurrentMonth
     });
     
@@ -108,7 +108,7 @@ export function generatePaymentHistory(
  */
 export function getStudentPaymentStats(
   student: Student,
-  payments: PaymentRecord[],
+  payments: (PaymentRecord & { receipt?: Receipt | null })[],
   targetYear?: number
 ): {
   totalMonthsEnrolled: number;

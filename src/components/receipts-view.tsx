@@ -1,7 +1,6 @@
 // src/components/receipts-view.tsx
 'use client';
 
-import { getReceiptsForPeriod } from '@/lib/data';
 import { Receipt } from '@prisma/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,9 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, DollarSign, Hash, User, Printer } from 'lucide-react';
 import { MonthlyPaymentNavigation } from '@/components/monthly-payment-navigation';
 import { Button } from '@/components/ui/button';
-// Define the props for the component
-type ReceiptsViewProps = {
-  searchParams: { [key: string]: string | string[] | undefined };
+
+// Define the props for the component, which now includes the data
+type ReceiptsViewContentProps = {
+  receipts: Receipt[];
+  year: number;
+  month: number;
 };
 
 // Helper to format currency
@@ -21,21 +23,17 @@ const formatCurrency = (amount: number) => {
 
 // Helper to format dates
 const formatDate = (date: Date) => {
-  return new Date(date).toLocaleDateString('ar-EG', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return new Date(date).toLocaleDateString('ar-EG', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric', 
     hour: '2-digit',
     minute: '2-digit'
   });
 };
 
-export async function ReceiptsView({ searchParams }: ReceiptsViewProps) {
-  const year = Number(searchParams.year) || new Date().getFullYear();
-  const month = Number(searchParams.month) || new Date().getMonth() + 1;
-
-  const receipts: Receipt[] = await getReceiptsForPeriod(year, month);
-
+// Renamed to ReceiptsViewContent
+export function ReceiptsViewContent({ receipts, year, month }: ReceiptsViewContentProps) {
   const totalRevenue = receipts.reduce((acc, receipt) => acc + receipt.amount, 0);
 
   return (
@@ -113,7 +111,7 @@ export async function ReceiptsView({ searchParams }: ReceiptsViewProps) {
                       <TableCell className="font-semibold text-green-600">{formatCurrency(receipt.amount)}</TableCell>
                       <TableCell>{formatDate(receipt.issuedAt)}</TableCell>
                       <TableCell className="text-center">
-                        <Button variant="outline" size="icon" onClick={() => window.print()}>
+                        <Button variant="outline" size="icon" onClick={() => window.print()}> 
                           <Printer className="h-4 w-4" />
                         </Button>
                       </TableCell>
