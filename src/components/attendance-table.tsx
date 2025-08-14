@@ -1,10 +1,14 @@
 // src/components/attendance-table.tsx
+'use client';
+
+import { useState } from 'react';
 import { Student, AttendanceRecord, AttendanceStatus } from '@prisma/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, CheckCircle, Clock, Users, TrendingUp, XCircle, AlertCircle } from 'lucide-react';
-import { AttendanceQRButton, MakeupQRButton } from '@/components/attendance-qr-buttons';
+import { Button } from '@/components/ui/button';
+import { QrScannerModal } from '@/components/qr-scanner-modal';
+import { Calendar, CheckCircle, Clock, Users, TrendingUp, XCircle, AlertCircle, QrCode } from 'lucide-react';
 
 type StudentWithAttendance = Student & {
   attendance: AttendanceRecord[];
@@ -58,6 +62,8 @@ function calculateAttendanceStats(students: StudentWithAttendance[], sessionDate
 }
 
 export function AttendanceTable({ students, sessionDates }: AttendanceTableProps) {
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [isMakeupModalOpen, setIsMakeupModalOpen] = useState(false);
   // If no group is selected, there are no session dates to show.
   if (sessionDates.length === 0) {
     return (
@@ -175,8 +181,23 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
               </p>
             </div>
             <div className="flex gap-2">
-              <AttendanceQRButton />
-              <MakeupQRButton />
+              <Button
+                onClick={() => setIsAttendanceModalOpen(true)}
+                className="bg-primary hover:bg-primary-hover text-white"
+                size="sm"
+              >
+                <QrCode className="h-4 w-4 mr-2" />
+                تسجيل حضور
+              </Button>
+              <Button
+                onClick={() => setIsMakeupModalOpen(true)}
+                variant="outline"
+                className="border-warning text-warning hover:bg-warning hover:text-white"
+                size="sm"
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                حضور تعويضي
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -311,6 +332,18 @@ export function AttendanceTable({ students, sessionDates }: AttendanceTableProps
           </div>
         </CardContent>
       </Card>
+
+      {/* QR Scanner Modals */}
+      <QrScannerModal
+        isOpen={isAttendanceModalOpen}
+        onClose={() => setIsAttendanceModalOpen(false)}
+        isMakeup={false}
+      />
+      <QrScannerModal
+        isOpen={isMakeupModalOpen}
+        onClose={() => setIsMakeupModalOpen(false)}
+        isMakeup={true}
+      />
     </div>
   );
 }

@@ -1,11 +1,15 @@
 // src/components/monthly-payment-table.tsx
+'use client';
+
+import { useState } from 'react';
 import { Student, PaymentRecord, Receipt } from '@prisma/client';
 import { translations } from '@/lib/constants';
-import { getPaymentStatusForMonth } from '@/lib/payment-history';
+import { getPaymentStatusForMonth } from '@/lib/payment-utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PaymentQRButton } from '@/components/payment-qr-button';
+import { Button } from '@/components/ui/button';
+import { PaymentScannerModal } from '@/components/payment-scanner-modal';
 import { 
   CheckCircle, 
   XCircle, 
@@ -13,7 +17,8 @@ import {
   Users,
   DollarSign,
   Calendar,
-  UserX
+  UserX,
+  CreditCard
 } from 'lucide-react';
 
 type StudentWithPayments = Student & {
@@ -27,6 +32,7 @@ type MonthlyPaymentTableProps = {
 };
 
 export function MonthlyPaymentTable({ students, month, year }: MonthlyPaymentTableProps) {
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const monthNames = [
     'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
     'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
@@ -198,7 +204,14 @@ export function MonthlyPaymentTable({ students, month, year }: MonthlyPaymentTab
                 عرض حالة الدفع لجميع الطلاب في الشهر المحدد
               </p>
             </div>
-            <PaymentQRButton month={month} year={year} />
+            <Button
+              onClick={() => setIsPaymentModalOpen(true)}
+              className="bg-success hover:bg-success-hover text-white"
+              size="sm"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              تسجيل دفع
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -290,6 +303,14 @@ export function MonthlyPaymentTable({ students, month, year }: MonthlyPaymentTab
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment Scanner Modal */}
+      <PaymentScannerModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        targetMonth={month}
+        targetYear={year}
+      />
     </div>
   );
 }
